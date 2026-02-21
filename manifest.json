@@ -2,7 +2,7 @@
   "name": "Productivité Atelier",
   "short_name": "Productivité",
   "description": "Application de gestion de productivité pour atelier automobile",
-  "start_url": "./index.html",
+  "start_url": "https://mickael195.github.io/productivit-app/",
   "display": "standalone",
   "background_color": "#0f1419",
   "theme_color": "#ff6b35",
