@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f1419">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Productivité">
+  <meta name="description" content="Application de gestion de productivité pour atelier automobile">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Icônes Apple -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%230f1419'/%3E%3Ctext x='96' y='145' font-size='130' text-anchor='middle' fill='%23ff6b35'%3E⚡%3C/text%3E%3C/svg%3E">
+  
+  <title>⚡ Productivité Atelier</title>
+  
+  <!-- Google Fonts - Style industriel -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+/* =============================================
+   ⚡ PRODUCTIVITÉ ATELIER - STYLE ORANGE 2026
+   Fusion Productivité + Convertisseur
+   ============================================= */
+
+:root {
+  /* Palette industrielle orange */
+  --bg-dark: #0f1419;
+  --bg-panel: #1a1f28;
+  --bg-input: #242b36;
+  --text-primary: #e8eaed;
+  --text-secondary: #9ca3af;
+  --accent-orange: #ff6b35;
+  --accent-glow: rgba(255, 107, 53, 0.4);
+  --steel-gray: #4a5568;
+  --success-green: #10b981;
+  --error-red: #ef4444;
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  
+  --radius: 20px;
+  --radius-sm: 12px;
+  --touch-min: 48px;
+  --header-h: 64px;
+  --bottombar-h: 76px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'Barlow', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 500;
+  background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-panel) 100%);
+  color: var(--text-primary);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  padding-top: calc(var(--header-h) + var(--safe-top));
+  padding-bottom: calc(var(--bottombar-h) + var(--safe-bottom) + 16px);
+  position: relative;
+}
+
+/* Effet de grille industrielle */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(255, 107, 53, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 107, 53, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeInUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes countUp { from{transform:scale(1.3);opacity:.5} to{transform:scale(1);opacity:1} }
+@keyframes toastIn { from{transform:translateY(100px) scale(.8);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
+@keyframes toastOut { from{transform:translateY(0);opacity:1} to{transform:translateY(100px);opacity:0} }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+@keyframes pulseOrange { 0%,100%{box-shadow:0 0 0 0 var(--accent-glow)} 50%{box-shadow:0 0 16px 4px var(--accent-glow)} }
+@keyframes pulseGreen { 0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.4)} 50%{box-shadow:0 0 12px 4px rgba(16,185,129,.15)} }
+@keyframes slideInLeft { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
+@keyframes slideOutRight { to{opacity:0;transform:translateX(30px)} }
+
+/* ══════════════════ HEADER ══════════════════ */
+#app-header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: calc(var(--header-h) + var(--safe-top)); padding-top: var(--safe-top);
+  display: flex; align-items: center; justify-content: space-between;
+  padding-left: 20px; padding-right: 16px;
+  background: var(--bg-panel);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-subtle);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Bande orange en haut */
+#app-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent-orange), #ffa500);
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-icon { font-size: 24px; filter: drop-shadow(0 0 8px var(--accent-glow)); }
+#app-header h1 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 18px; font-weight: 900; letter-spacing: 2px;
+  background: linear-gradient(135deg, var(--text-primary), var(--accent-orange));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  text-transform: uppercase;
+}
+.header-actions { display: flex; gap: 8px; }
+.header-btn {
+  width: 44px; height: 44px; border: none; border-radius: var(--radius-sm);
+  background: var(--bg-input); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; transition: all .2s; border: 1px solid var(--border-subtle);
+}
+.header-btn:active { transform: scale(.92); background: var(--steel-gray); }
+
+/* ══════════════════ STATS GLOBALES ══════════════════ */
+#stats-globales { 
+  display: flex; gap: 8px; padding: 16px 16px 8px; 
+  overflow-x: auto; scrollbar-width: none; 
+}
+#stats-globales::-webkit-scrollbar { display: none; }
+.stat-chip {
+  flex: 1; min-width: 0; 
+  background: var(--bg-panel); 
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm); 
+  padding: 10px 8px; 
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.stat-chip.stat-bilan {
+  border: 2px solid var(--accent-orange);
+  background: rgba(255, 107, 53, 0.08);
+}
+.stat-chip.stat-bilan.bilan-positif {
+  border-color: var(--success-green);
+  background: rgba(16, 185, 129, 0.1);
+}
+.stat-chip.stat-bilan.bilan-negatif {
+  border-color: var(--error-red);
+  background: rgba(239, 68, 68, 0.1);
+}
+.stat-label { 
+  display: block; 
+  font-size: 10px; 
+  font-weight: 600; 
+  text-transform: uppercase; 
+  letter-spacing: 1px; 
+  color: var(--text-secondary); 
+  margin-bottom: 3px; 
+}
+.stat-value { 
+  display: block; 
+  font-size: 18px; 
+  font-weight: 900; 
+  color: var(--accent-orange); 
+  font-family: 'Orbitron', sans-serif;
+}
+.stat-bilan-value.bilan-positif {
+  color: var(--success-green);
+}
+.stat-bilan-value.bilan-negatif {
+  color: var(--error-red);
+}
+
+/* ══════════════════ COMPTEURS GLOBAUX ══════════════════ */
+#global-counters { display: flex; gap: 8px; padding: 4px 16px 8px; }
+.counter-chip {
+  flex: 1; display: flex; align-items: center; gap: 10px;
+  background: var(--bg-panel); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm); padding: 10px 12px; transition: all .3s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.counter-chip.active-inac { 
+  border-color: var(--accent-orange); 
+  background: rgba(255, 107, 53, 0.08); 
+}
+.counter-chip.active-pression { 
+  border-color: var(--success-green); 
+  background: rgba(16, 185, 129, 0.08); 
+}
+.counter-icon { font-size: 22px; }
+.counter-info { flex: 1; min-width: 0; }
+.counter-title { 
+  font-size: 11px; 
+  font-weight: 700; 
+  text-transform: uppercase; 
+  letter-spacing: .5px; 
+  color: var(--text-secondary); 
+}
+.counter-time { 
+  font-size: 20px; 
+  font-weight: 900; 
+  font-variant-numeric: tabular-nums; 
+  font-family: 'Orbitron', sans-serif;
+}
+.counter-time.inac-color { color: var(--accent-orange); }
+.counter-time.pression-color { color: var(--success-green); }
+.counter-time.blink { animation: blink 1s ease-in-out infinite; }
+
+/* ══════════════════ CAROUSEL VÉHICULES ══════════════════ */
+#vehicules-container { padding: 8px 0; flex: 1; }
+.carousel { display: flex; flex-direction: column; gap: 14px; padding: 8px 16px; }
+
+/* ══════════════════ CARTE VÉHICULE ══════════════════ */
+.vehicle-card {
+  background: var(--bg-panel); 
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius); 
+  overflow: hidden;
+  animation: fadeInUp .4s ease backwards;
+  transition: box-shadow .3s;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  position: relative;
+}
+
+/* Bande orange décorative */
+.vehicle-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent-orange), #ffa500);
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+/* Timer actif → animation verte */
+.vehicle-card.timer-active {
+  border-color: rgba(16,185,129,.3);
+  animation: pulseGreen 2.5s ease-in-out infinite;
+}
+
+/* ── Partie haute : info (cliquable pour éditer) ── */
+.vehicle-top {
+  display: flex; align-items: stretch; cursor: pointer;
+  transition: background .2s; min-height: 90px;
+  margin-top: 4px; /* Pour la bande orange */
+}
+.vehicle-top:active { background: rgba(248,250,252,.03); }
+
+.vehicle-status-badge {
+  width: 90px; min-width: 90px; 
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px;
+  position: relative; overflow: hidden;
+}
+.vehicle-status-badge::before { 
+  content:''; 
+  position: absolute; 
+  inset: 0; 
+  opacity: .15; 
+}
+.vehicle-status-badge.status-vert::before { background: var(--success-green); }
+.vehicle-status-badge.status-rouge::before { background: var(--error-red); }
+.vehicle-status-badge.status-neutre::before { background: var(--accent-orange); }
+
+.status-diff { 
+  font-size: 16px; 
+  font-weight: 900; 
+  line-height: 1.1; 
+  text-align: center;
+  font-family: 'Orbitron', sans-serif;
+}
+.status-vert .status-diff { color: var(--success-green); }
+.status-rouge .status-diff { color: var(--error-red); }
+.status-neutre .status-diff { color: var(--accent-orange); }
+.status-icon { font-size: 13px; }
+
+.vehicle-content {
+  flex: 1; 
+  padding: 12px 14px; 
+  display: flex; 
+  flex-direction: column;
+  justify-content: center; 
+  gap: 5px; 
+  min-width: 0;
+}
+.vehicle-name { 
+  font-size: 16px; 
+  font-weight: 700; 
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+  font-family: 'Orbitron', sans-serif;
+}
+.vehicle-detail { 
+  font-size: 12px; 
+  color: var(--text-secondary); 
+  display: flex; 
+  flex-wrap: wrap; 
+  gap: 5px; 
+}
+.vehicle-detail span { white-space: nowrap; }
+
+/* ── Timer et boutons ── */
+.vehicle-bottom {
+  background: var(--bg-input);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.timer-display {
+  flex: 1;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+}
+.timer-display.running { color: var(--success-green); }
+.timer-display.stopped { color: var(--error-red); }
+
+.timer-btn {
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--border-subtle);
+  border-radius: 50%;
+  background: var(--bg-panel);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all .2s;
+  flex-shrink: 0;
+}
+.timer-btn:active { transform: scale(.92); }
+.timer-btn.play { 
+  border-color: var(--success-green); 
+  color: var(--success-green); 
+}
+.timer-btn.pause { 
+  border-color: var(--accent-orange); 
+  color: var(--accent-orange); 
+}
+.timer-btn.stop { 
+  border-color: var(--error-red); 
+  color: var(--error-red); 
+}
+
+/* ══════════════════ BOTTOM BAR ══════════════════ */
+#bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--bottombar-h) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 12px 20px;
+  z-index: 99;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.bottom-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  transition: all .2s;
+  min-width: 64px;
+}
+.bottom-btn:active { transform: scale(.92); }
+
+.bottom-btn-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bg-input);
+  border: 2px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  transition: all .2s;
+}
+.bottom-btn.active .bottom-btn-icon {
+  border-color: var(--accent-orange);
+  background: rgba(255, 107, 53, 0.15);
+  animation: pulseOrange 1.5s ease-in-out infinite;
+}
+.bottom-btn.active.pression .bottom-btn-icon {
+  border-color: var(--success-green);
+  background: rgba(16, 185, 129, 0.15);
+  animation: pulseGreen 1.5s ease-in-out infinite;
+}
+
+#btn-bottom-fab {
+  position: relative;
+}
+#btn-bottom-fab .bottom-btn-icon {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--accent-orange), #ffa500);
+  border: none;
+  font-size: 28px;
+  box-shadow: 0 4px 16px var(--accent-glow);
+  margin-top: -8px;
+}
+#btn-bottom-fab:active .bottom-btn-icon {
+  transform: scale(.88);
+}
+
+.bottom-btn-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  transition: color .2s;
+}
+.bottom-btn.active .bottom-btn-label {
+  color: var(--accent-orange);
+}
+.bottom-btn.active.pression .bottom-btn-label {
+  color: var(--success-green);
+}
+
+/* ══════════════════ MODAL ══════════════════ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 200;
+  opacity: 0;
+  visibility: hidden;
+  transition: all .3s;
+}
+.modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-content {
+  background: var(--bg-panel);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    0 0 0 1px var(--border-subtle),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transform: scale(.9);
+  transition: transform .3s;
+  position: relative;
+}
+.modal-overlay.active .modal-content {
+  transform: scale(1);
+}
+
+/* Bande orange en haut du modal */
+.modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent-orange), #ffa500);
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.modal-header {
+  padding: 24px 24px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-top: 4px; /* Pour la bande orange */
+}
+.modal-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.modal-close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: var(--bg-input);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: var(--text-secondary);
+  transition: all .2s;
+}
+.modal-close:hover { background: var(--steel-gray); color: var(--text-primary); }
+.modal-close:active { transform: scale(.9); }
+
+.modal-body {
+  padding: 24px;
+}
+
+/* ── Formulaire ── */
+.form-group {
+  margin-bottom: 24px;
+}
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+.form-input {
+  width: 100%;
+  padding: 14px 18px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  background: var(--bg-input);
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  outline: none;
+  transition: all .3s;
+}
+.form-input:focus {
+  border-color: var(--accent-orange);
+  box-shadow: 0 0 0 4px var(--accent-glow);
+}
+.form-input::placeholder {
+  color: var(--steel-gray);
+  font-weight: 400;
+}
+
+/* ── Système d'ajout de temps (comme Convertisseur) ── */
+.inputs-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.input-line {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  animation: slideInLeft 0.3s ease-out;
+}
+
+.line-number {
+  background: var(--accent-orange);
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px var(--accent-glow);
+  font-family: 'Orbitron', sans-serif;
+}
+
+.input-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.time-input {
+  width: 100%;
+  padding: 14px 18px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  background: var(--bg-input);
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  outline: none;
+  transition: all .3s;
+}
+.time-input:focus {
+  border-color: var(--accent-orange);
+  box-shadow: 0 0 0 4px var(--accent-glow);
+  transform: translateY(-2px);
+}
+.time-input::placeholder {
+  color: var(--steel-gray);
+  font-weight: 400;
+}
+
+.btn-remove-line {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--error-red);
+  background: transparent;
+  color: var(--error-red);
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all .2s;
+  line-height: 1;
+}
+.btn-remove-line:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+.btn-remove-line:active {
+  transform: scale(.9);
+}
+
+.btn-add-line {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: 2px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: 'Barlow', sans-serif;
+}
+.btn-add-line:hover {
+  border-color: var(--accent-orange);
+  color: var(--accent-orange);
+}
+.btn-add-line:active {
+  transform: scale(.98);
+}
+
+/* Total prévu */
+.total-display {
+  background: var(--bg-input);
+  border: 2px solid var(--accent-orange);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  text-align: center;
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+.total-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.total-value {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--accent-orange);
+}
+
+/* ── Boutons d'action ── */
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px 24px;
+  border-top: 1px solid var(--border-subtle);
+}
+.modal-btn {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: 'Barlow', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.modal-btn-primary {
+  background: linear-gradient(135deg, var(--accent-orange), #ffa500);
+  color: white;
+  box-shadow: 0 4px 16px var(--accent-glow);
+}
+.modal-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--accent-glow);
+}
+.modal-btn-primary:active {
+  transform: translateY(0);
+}
+.modal-btn-danger {
+  background: transparent;
+  color: var(--error-red);
+  border: 2px solid var(--error-red);
+}
+.modal-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+.modal-btn-danger:active {
+  transform: scale(.96);
+}
+
+/* ══════════════════ TOAST ══════════════════ */
+#toast-container {
+  position: fixed;
+  bottom: calc(var(--bottombar-h) + var(--safe-bottom) + 20px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: toastIn .3s ease;
+  pointer-events: auto;
+}
+.toast.toast-out {
+  animation: toastOut .3s ease forwards;
+}
+.toast-success {
+  border-left: 4px solid var(--success-green);
+}
+.toast-error {
+  border-left: 4px solid var(--error-red);
+}
+.toast-info {
+  border-left: 4px solid var(--accent-orange);
+}
+
+/* ══════════════════ SCROLLBAR ══════════════════ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-input);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--steel-gray);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-orange);
+}
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════ HEADER ══════════════════ -->
+<header id="app-header">
+  <div class="header-left">
+    <div class="header-icon">⚡</div>
+    <h1>Productivité</h1>
+  </div>
+  <div class="header-actions">
+    <div style="font-size: 11px; color: var(--text-secondary); margin-right: 12px; text-align: right; line-height: 1.3;">
+      <div style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Depuis le</div>
+      <div id="date-debut" style="font-family: 'Orbitron', sans-serif; color: var(--accent-orange); font-weight: 700;">—</div>
+    </div>
+    <button class="header-btn" id="btn-pdf" aria-label="Exporter">📄</button>
+    <button class="header-btn" id="btn-vider" aria-label="Vider">🗑️</button>
+  </div>
+</header>
+
+<!-- ══════════════════ STATS GLOBALES ══════════════════ -->
+<div id="stats-globales">
+  <div class="stat-chip">
+    <span class="stat-label">Véhicules</span>
+    <span class="stat-value" id="stat-vehicules">0</span>
+  </div>
+  <div class="stat-chip">
+    <span class="stat-label">Temps Prévu</span>
+    <span class="stat-value" id="stat-temps-prevu">0.00h</span>
+  </div>
+  <div class="stat-chip">
+    <span class="stat-label">Temps Réel</span>
+    <span class="stat-value" id="stat-temps-reel">0.00h</span>
+  </div>
+  <div class="stat-chip stat-bilan" id="stat-bilan-chip">
+    <span class="stat-label">Bilan Total</span>
+    <span class="stat-value stat-bilan-value" id="stat-bilan">—</span>
+  </div>
+</div>
+
+<!-- ══════════════════ COMPTEURS GLOBAUX ══════════════════ -->
+<div id="global-counters">
+  <div class="counter-chip" id="counter-inac">
+    <div class="counter-icon">⏸️</div>
+    <div class="counter-info">
+      <div class="counter-title">Inactivité</div>
+      <div class="counter-time inac-color" id="inac-time">00:00:00</div>
+    </div>
+  </div>
+  <div class="counter-chip" id="counter-pression">
+    <div class="counter-icon">⚡</div>
+    <div class="counter-info">
+      <div class="counter-title">Pression/Niveau</div>
+      <div class="counter-time pression-color" id="pression-time">00:00:00</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ CAROUSEL VÉHICULES ══════════════════ -->
+<div id="vehicules-container">
+  <div class="carousel" id="carousel"></div>
+</div>
+
+<!-- ══════════════════ BOTTOM BAR ══════════════════ -->
+<div id="bottom-bar">
+  <button class="bottom-btn" id="btn-bottom-inac">
+    <div class="bottom-btn-icon">⏸️</div>
+    <div class="bottom-btn-label">Inactivité</div>
+  </button>
+  <button class="bottom-btn" id="btn-bottom-fab">
+    <div class="bottom-btn-icon">+</div>
+    <div class="bottom-btn-label">Nouveau</div>
+  </button>
+  <button class="bottom-btn pression" id="btn-bottom-pression">
+    <div class="bottom-btn-icon">⚡</div>
+    <div class="bottom-btn-label">Pression/Niveau</div>
+  </button>
+</div>
+
+<!-- ══════════════════ MODAL VÉHICULE ══════════════════ -->
+<div class="modal-overlay" id="modal-overlay" aria-hidden="true">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-title">Nouveau Véhicule</h2>
+      <button class="modal-close" id="modal-close" aria-label="Fermer">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="input-nom">Nom du véhicule</label>
+        <input type="text" id="input-nom" class="form-input" placeholder="Ex: Peugeot 3008" autocomplete="off">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Temps atelier (centièmes d'heure)</label>
+        <div class="inputs-container" id="inputs-container">
+          <div class="input-line" data-line="1">
+            <span class="line-number">1</span>
+            <div class="input-wrapper">
+              <input type="text" class="time-input" placeholder="Ex: 0.45" autocomplete="off" inputmode="decimal" data-line="1">
+            </div>
+          </div>
+        </div>
+        <button class="btn-add-line" id="btn-add-line">
+          + Ajouter une ligne
+        </button>
+      </div>
+
+      <div class="total-display">
+        <div class="total-label">Temps Prévu Total</div>
+        <div class="total-value" id="total-prevu">0.00h</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-danger" id="btn-supprimer" style="display:none;">Supprimer</button>
+      <button class="modal-btn modal-btn-primary" id="btn-valider">Valider</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MODAL CONFIRMATION ══════════════════ -->
+<div class="modal-overlay" id="confirm-overlay" aria-hidden="true">
+  <div class="modal-content" style="max-width: 400px;">
+    <div class="modal-header">
+      <h2 class="modal-title">Confirmer ?</h2>
+      <button class="modal-close" id="confirm-cancel-x" aria-label="Fermer">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="color: var(--text-secondary); line-height: 1.6;">
+        Êtes-vous sûr de vouloir <strong style="color: var(--error-red);">effacer toutes les données</strong> ? Cette action est irréversible.
+      </p>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-danger" id="confirm-cancel">Annuler</button>
+      <button class="modal-btn modal-btn-primary" id="confirm-ok">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ TOAST CONTAINER ══════════════════ -->
+<div id="toast-container"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   ⚡ PRODUCTIVITÉ ATELIER - LOGIQUE PRINCIPALE
+   ═══════════════════════════════════════════════════════════ */
+
+// ─────── VARIABLES GLOBALES ───────
+var vehicules = [];
+var vehiculeEditIndex = -1;
+var lineCounter = 1;
+var MAX_LINES = 15;
+
+// Timers véhicules
+var vehicleTimerIntervals = {};
+
+// Compteurs globaux
+var inacRunning = false;
+var pressionRunning = false;
+var inacInterval = null;
+var pressionInterval = null;
+
+// ─────── LOCAL STORAGE ───────
+function chargerVehicules() {
+  try {
+    var data = localStorage.getItem('vehicules_atelier');
+    return data ? JSON.parse(data) : [];
+  } catch(e) { return []; }
+}
+
+function sauvegarderVehicules(arr) {
+  try {
+    localStorage.setItem('vehicules_atelier', JSON.stringify(arr));
+  } catch(e) {}
+}
+
+function chargerGlobales() {
+  try {
+    var data = localStorage.getItem('globales_atelier');
+    if (!data) return { inactiviteSeconds: 0, pressionSeconds: 0, dateDebut: new Date().toISOString() };
+    return JSON.parse(data);
+  } catch(e) {
+    return { inactiviteSeconds: 0, pressionSeconds: 0, dateDebut: new Date().toISOString() };
+  }
+}
+
+function sauvegarderGlobales(obj) {
+  try {
+    localStorage.setItem('globales_atelier', JSON.stringify(obj));
+  } catch(e) {}
+}
+
+// ─────── CONVERSION ───────
+function centHToSeconds(centH) {
+  return Math.round(centH * 3600);
+}
+
+function secondesToCentH(sec) {
+  return sec / 3600;
+}
+
+function formatCentH(centH) {
+  return centH.toFixed(2) + 'h';
+}
+
+function formatTime(seconds) {
+  var h = Math.floor(seconds / 3600);
+  var m = Math.floor((seconds % 3600) / 60);
+  var s = seconds % 60;
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+// Nouveau : Formater différence en heures + minutes (ex: +1h 30min)
+function formatDifference(diffSeconds) {
+  var absSeconds = Math.abs(diffSeconds);
+  var h = Math.floor(absSeconds / 3600);
+  var m = Math.floor((absSeconds % 3600) / 60);
+  
+  var sign = diffSeconds >= 0 ? '+' : '-';
+  
+  if (h === 0 && m === 0) {
+    return '—';
+  }
+  
+  var parts = [];
+  if (h > 0) parts.push(h + 'h');
+  if (m > 0) parts.push(m + 'min');
+  
+  return sign + parts.join(' ');
+}
+
+// ─────── CALCUL DIFFÉRENCE ───────
+function calculerDifference(v) {
+  if (!v.tempsReelSeconds || v.tempsReelSeconds === 0) {
+    return { diffSeconds: null, couleur: '#ff6b35', label: '—' };
+  }
+  
+  var prevuSeconds = centHToSeconds(v.tempsPrevuCentH);
+  var diffBrut = prevuSeconds - v.tempsReelSeconds;
+  
+  // L'INACTIVITÉ SOUSTRAIT DU TEMPS GAGNÉ (ou empire le temps perdu)
+  var g = chargerGlobales();
+  var diffSeconds = diffBrut - g.inactiviteSeconds;
+  
+  var couleur = '#ff6b35'; // Neutre orange
+  if (diffSeconds > 0) couleur = '#10b981'; // Vert = temps gagné
+  else if (diffSeconds < 0) couleur = '#ef4444'; // Rouge = temps perdu
+  
+  var label = formatDifference(diffSeconds);
+  
+  return { diffSeconds: diffSeconds, couleur: couleur, label: label };
+}
+
+// ─────── RENDER ───────
+function renderAll() {
+  renderStats();
+  renderVehicules();
+  renderCompteurs();
+}
+
+function renderStats() {
+  var nbVehicules = vehicules.length;
+  var totalPrevuCentH = vehicules.reduce(function(sum, v) { return sum + v.tempsPrevuCentH; }, 0);
+  var totalReelSeconds = vehicules.reduce(function(sum, v) { return sum + v.tempsReelSeconds; }, 0);
+  var totalReelCentH = secondesToCentH(totalReelSeconds);
+  
+  document.getElementById('stat-vehicules').textContent = nbVehicules;
+  document.getElementById('stat-temps-prevu').textContent = totalPrevuCentH.toFixed(2);
+  document.getElementById('stat-temps-reel').textContent = totalReelCentH.toFixed(2);
+  
+  // Calcul du bilan total (temps gagné/perdu)
+  var bilanElement = document.getElementById('stat-bilan');
+  var bilanChip = document.getElementById('stat-bilan-chip');
+  
+  if (totalReelSeconds === 0) {
+    // Pas encore de temps réel
+    bilanElement.textContent = '—';
+    bilanElement.className = 'stat-value stat-bilan-value';
+    bilanChip.classList.remove('bilan-positif', 'bilan-negatif');
+  } else {
+    var totalPrevuSeconds = centHToSeconds(totalPrevuCentH);
+    var diffBrut = totalPrevuSeconds - totalReelSeconds;
+    
+    // Soustraire l'inactivité du temps gagné
+    var g = chargerGlobales();
+    var bilanSeconds = diffBrut - g.inactiviteSeconds;
+    
+    var bilanLabel = formatDifference(bilanSeconds);
+    bilanElement.textContent = bilanLabel;
+    
+    // Appliquer les couleurs
+    bilanElement.className = 'stat-value stat-bilan-value';
+    bilanChip.classList.remove('bilan-positif', 'bilan-negatif');
+    
+    if (bilanSeconds > 0) {
+      bilanElement.classList.add('bilan-positif');
+      bilanChip.classList.add('bilan-positif');
+    } else if (bilanSeconds < 0) {
+      bilanElement.classList.add('bilan-negatif');
+      bilanChip.classList.add('bilan-negatif');
+    }
+  }
+}
+
+function renderVehicules() {
+  var carousel = document.getElementById('carousel');
+  carousel.innerHTML = '';
+  
+  if (vehicules.length === 0) {
+    carousel.innerHTML = '<div style="text-align:center; padding:60px 20px; color:var(--text-secondary);"><p style="font-size:48px; margin-bottom:16px;">🚗</p><p style="font-size:18px; font-weight:600;">La sécurité, notre priorité!</p><p style="font-size:14px; margin-top:8px;">Appuyez sur + pour commencer</p></div>';
+    return;
+  }
+  
+  vehicules.forEach(function(v, idx) {
+    var card = document.createElement('div');
+    card.className = 'vehicle-card';
+    if (v.timerRunning) card.classList.add('timer-active');
+    
+    var diff = calculerDifference(v);
+    var statusClass = 'status-neutre';
+    if (diff.diffSeconds !== null) {
+      if (diff.diffSeconds > 0) statusClass = 'status-vert';
+      else if (diff.diffSeconds < 0) statusClass = 'status-rouge';
+    }
+    
+    var topDiv = document.createElement('div');
+    topDiv.className = 'vehicle-top';
+    topDiv.onclick = function() { ouvrirEditer(idx); };
+    
+    var badge = document.createElement('div');
+    badge.className = 'vehicle-status-badge ' + statusClass;
+    badge.innerHTML = '<div class="status-diff">' + diff.label + '</div><div class="status-icon">⏱️</div>';
+    
+    var content = document.createElement('div');
+    content.className = 'vehicle-content';
+    content.innerHTML = '<div class="vehicle-name">' + v.nom + '</div><div class="vehicle-detail"><span>Prévu: ' + v.tempsPrevuCentH.toFixed(2) + '</span><span>•</span><span>Réel: ' + (v.tempsReelSeconds ? secondesToCentH(v.tempsReelSeconds).toFixed(2) : '—') + '</span></div>';
+    
+    topDiv.appendChild(badge);
+    topDiv.appendChild(content);
+    
+    var bottomDiv = document.createElement('div');
+    bottomDiv.className = 'vehicle-bottom';
+    
+    var timerDisplay = document.createElement('div');
+    timerDisplay.className = 'timer-display';
+    if (v.timerRunning) timerDisplay.classList.add('running');
+    else if (v.timerStopped) timerDisplay.classList.add('stopped');
+    timerDisplay.textContent = formatTime(v.tempsReelSeconds);
+    
+    var playBtn = document.createElement('button');
+    playBtn.className = 'timer-btn play';
+    playBtn.innerHTML = v.timerRunning ? '⏸' : '▶';
+    playBtn.onclick = function(e) { e.stopPropagation(); toggleVehicleTimer(idx); };
+    
+    var stopBtn = document.createElement('button');
+    stopBtn.className = 'timer-btn stop';
+    stopBtn.innerHTML = '⏹';
+    stopBtn.onclick = function(e) { e.stopPropagation(); stopVehicleTimer(idx); };
+    
+    bottomDiv.appendChild(timerDisplay);
+    bottomDiv.appendChild(playBtn);
+    bottomDiv.appendChild(stopBtn);
+    
+    card.appendChild(topDiv);
+    card.appendChild(bottomDiv);
+    carousel.appendChild(card);
+  });
+}
+
+function renderCompteurs() {
+  var g = chargerGlobales();
+  document.getElementById('inac-time').textContent = formatTime(g.inactiviteSeconds);
+  document.getElementById('pression-time').textContent = formatTime(g.pressionSeconds);
+  
+  // Afficher la date de début
+  if (g.dateDebut) {
+    var dateDebut = new Date(g.dateDebut);
+    var dateStr = dateDebut.getDate() + '/' + (dateDebut.getMonth() + 1);
+    document.getElementById('date-debut').textContent = dateStr;
+  }
+  
+  var chipInac = document.getElementById('counter-inac');
+  var chipPression = document.getElementById('counter-pression');
+  var timeInac = document.getElementById('inac-time');
+  var timePression = document.getElementById('pression-time');
+  
+  if (inacRunning) {
+    chipInac.classList.add('active-inac');
+    timeInac.classList.add('blink');
+  } else {
+    chipInac.classList.remove('active-inac');
+    timeInac.classList.remove('blink');
+  }
+  
+  if (pressionRunning) {
+    chipPression.classList.add('active-pression');
+    timePression.classList.add('blink');
+  } else {
+    chipPression.classList.remove('active-pression');
+    timePression.classList.remove('blink');
+  }
+}
+
+// ─────── TIMERS VÉHICULE ───────
+function toggleVehicleTimer(idx) {
+  var v = vehicules[idx];
+  
+  if (v.timerRunning) {
+    // Pause
+    clearInterval(vehicleTimerIntervals[idx]);
+    delete vehicleTimerIntervals[idx];
+    v.timerRunning = false;
+  } else {
+    // Play
+    v.timerRunning = true;
+    v.timerStopped = false;
+    vehicleTimerIntervals[idx] = setInterval(function() {
+      v.tempsReelSeconds++;
+      sauvegarderVehicules(vehicules);
+      // Ne mettre à jour QUE ce véhicule pour éviter le clignotement
+      updateVehicleDisplay(idx);
+      renderStats(); // Mettre à jour les stats globales
+    }, 1000);
+  }
+  
+  sauvegarderVehicules(vehicules);
+  renderAll();
+}
+
+function updateVehicleDisplay(idx) {
+  var v = vehicules[idx];
+  var carousel = document.getElementById('carousel');
+  var cards = carousel.querySelectorAll('.vehicle-card');
+  
+  if (!cards[idx]) return;
+  
+  var card = cards[idx];
+  
+  // Mettre à jour le timer display
+  var timerDisplay = card.querySelector('.timer-display');
+  if (timerDisplay) {
+    timerDisplay.textContent = formatTime(v.tempsReelSeconds);
+  }
+  
+  // Mettre à jour le badge de différence
+  var diff = calculerDifference(v);
+  var statusBadge = card.querySelector('.vehicle-status-badge');
+  if (statusBadge) {
+    // Retirer les anciennes classes
+    statusBadge.classList.remove('status-vert', 'status-rouge', 'status-neutre');
+    
+    // Ajouter la nouvelle classe
+    var statusClass = 'status-neutre';
+    if (diff.diffSeconds !== null) {
+      if (diff.diffSeconds > 0) statusClass = 'status-vert';
+      else if (diff.diffSeconds < 0) statusClass = 'status-rouge';
+    }
+    statusBadge.classList.add(statusClass);
+    
+    // Mettre à jour le label
+    var statusDiff = statusBadge.querySelector('.status-diff');
+    if (statusDiff) {
+      statusDiff.textContent = diff.label;
+    }
+  }
+  
+  // Mettre à jour le détail (temps réel)
+  var detail = card.querySelector('.vehicle-detail');
+  if (detail) {
+    detail.innerHTML = '<span>Prévu: ' + v.tempsPrevuCentH.toFixed(2) + '</span><span>•</span><span>Réel: ' + (v.tempsReelSeconds ? secondesToCentH(v.tempsReelSeconds).toFixed(2) : '—') + '</span>';
+  }
+}
+
+function stopVehicleTimer(idx) {
+  var v = vehicules[idx];
+  clearInterval(vehicleTimerIntervals[idx]);
+  delete vehicleTimerIntervals[idx];
+  v.timerRunning = false;
+  v.timerStopped = true;
+  sauvegarderVehicules(vehicules);
+  renderAll();
+}
+
+// ─────── COMPTEURS GLOBAUX ───────
+function toggleInactivite() {
+  if (inacRunning) {
+    clearInterval(inacInterval);
+    inacInterval = null;
+    inacRunning = false;
+    document.getElementById('btn-bottom-inac').classList.remove('active');
+  } else {
+    inacRunning = true;
+    document.getElementById('btn-bottom-inac').classList.add('active');
+    inacInterval = setInterval(function() {
+      var g = chargerGlobales();
+      g.inactiviteSeconds++;
+      sauvegarderGlobales(g);
+      renderCompteurs();
+      renderStats(); // Mettre à jour le bilan global
+      // Mettre à jour TOUS les badges de différence car l'inactivité impacte tout
+      updateAllDifferences();
+    }, 1000);
+  }
+  renderCompteurs();
+}
+
+function togglePression() {
+  if (pressionRunning) {
+    clearInterval(pressionInterval);
+    pressionInterval = null;
+    pressionRunning = false;
+    document.getElementById('btn-bottom-pression').classList.remove('active');
+  } else {
+    pressionRunning = true;
+    document.getElementById('btn-bottom-pression').classList.add('active');
+    pressionInterval = setInterval(function() {
+      var g = chargerGlobales();
+      g.pressionSeconds++;
+      sauvegarderGlobales(g);
+      renderCompteurs();
+    }, 1000);
+  }
+  renderCompteurs();
+}
+
+function updateAllDifferences() {
+  vehicules.forEach(function(v, idx) {
+    if (!v.tempsReelSeconds || v.tempsReelSeconds === 0) return;
+    
+    var carousel = document.getElementById('carousel');
+    var cards = carousel.querySelectorAll('.vehicle-card');
+    if (!cards[idx]) return;
+    
+    var card = cards[idx];
+    var diff = calculerDifference(v);
+    var statusBadge = card.querySelector('.vehicle-status-badge');
+    
+    if (statusBadge) {
+      statusBadge.classList.remove('status-vert', 'status-rouge', 'status-neutre');
+      
+      var statusClass = 'status-neutre';
+      if (diff.diffSeconds !== null) {
+        if (diff.diffSeconds > 0) statusClass = 'status-vert';
+        else if (diff.diffSeconds < 0) statusClass = 'status-rouge';
+      }
+      statusBadge.classList.add(statusClass);
+      
+      var statusDiff = statusBadge.querySelector('.status-diff');
+      if (statusDiff) {
+        statusDiff.textContent = diff.label;
+      }
+    }
+  });
+}
+
+// ─────── MODAL VÉHICULE ───────
+function ouvrirNouveau() {
+  vehiculeEditIndex = -1;
+  document.getElementById('modal-title').textContent = 'Nouveau Véhicule';
+  document.getElementById('btn-supprimer').style.display = 'none';
+  document.getElementById('input-nom').value = '';
+  
+  // Reset lignes
+  var container = document.getElementById('inputs-container');
+  container.innerHTML = '<div class="input-line" data-line="1"><span class="line-number">1</span><div class="input-wrapper"><input type="text" class="time-input" placeholder="Ex: 0.45" autocomplete="off" inputmode="decimal" data-line="1"></div></div>';
+  lineCounter = 1;
+  document.getElementById('btn-add-line').style.display = 'flex';
+  
+  updateTotal();
+  ouvrirModal();
+}
+
+function ouvrirEditer(idx) {
+  vehiculeEditIndex = idx;
+  var v = vehicules[idx];
+  document.getElementById('modal-title').textContent = 'Modifier Véhicule';
+  document.getElementById('btn-supprimer').style.display = 'block';
+  document.getElementById('input-nom').value = v.nom;
+  
+  // Charger les lignes existantes
+  var container = document.getElementById('inputs-container');
+  container.innerHTML = '';
+  
+  // On suppose que v.lignesTemps est un array de nombres (centièmes d'heure)
+  // Si pas défini, on utilise juste le total
+  var lignes = v.lignesTemps || [v.tempsPrevuCentH];
+  lineCounter = 0;
+  
+  lignes.forEach(function(centH) {
+    lineCounter++;
+    var line = document.createElement('div');
+    line.className = 'input-line';
+    line.dataset.line = lineCounter;
+    line.innerHTML = '<span class="line-number">' + lineCounter + '</span><div class="input-wrapper"><input type="text" class="time-input" placeholder="Ex: 0.45" autocomplete="off" inputmode="decimal" data-line="' + lineCounter + '" value="' + centH.toFixed(2) + '"></div>' + (lineCounter > 1 ? '<button class="btn-remove-line" type="button" onclick="removeLine(' + lineCounter + ')">×</button>' : '');
+    container.appendChild(line);
+  });
+  
+  if (lineCounter >= MAX_LINES) {
+    document.getElementById('btn-add-line').style.display = 'none';
+  } else {
+    document.getElementById('btn-add-line').style.display = 'flex';
+  }
+  
+  updateTotal();
+  ouvrirModal();
+}
+
+function updateTotal() {
+  var inputs = document.querySelectorAll('.time-input');
+  var total = 0;
+  
+  inputs.forEach(function(input) {
+    var val = input.value.trim().replace(',', '.');
+    if (val && !isNaN(val)) {
+      total += parseFloat(val);
+    }
+  });
+  
+  document.getElementById('total-prevu').textContent = total.toFixed(2);
+}
+
+function addLine() {
+  if (lineCounter >= MAX_LINES) {
+    showToast('Maximum ' + MAX_LINES + ' lignes atteint', 'error');
+    return;
+  }
+  
+  lineCounter++;
+  
+  var newLine = document.createElement('div');
+  newLine.className = 'input-line';
+  newLine.dataset.line = lineCounter;
+  newLine.innerHTML = '<span class="line-number">' + lineCounter + '</span><div class="input-wrapper"><input type="text" class="time-input" placeholder="Ex: 0.45" autocomplete="off" inputmode="decimal" data-line="' + lineCounter + '"></div><button class="btn-remove-line" type="button" onclick="removeLine(' + lineCounter + ')">×</button>';
+  
+  document.getElementById('inputs-container').appendChild(newLine);
+  
+  var newInput = newLine.querySelector('.time-input');
+  newInput.addEventListener('input', updateTotal);
+  newInput.focus();
+  
+  if (lineCounter >= MAX_LINES) {
+    document.getElementById('btn-add-line').style.display = 'none';
+  }
+}
+
+function removeLine(lineNumber) {
+  var line = document.querySelector('.input-line[data-line="' + lineNumber + '"]');
+  if (line) {
+    line.style.animation = 'slideOutRight 0.3s ease-out';
+    setTimeout(function() {
+      line.remove();
+      lineCounter--;
+      
+      if (lineCounter < MAX_LINES) {
+        document.getElementById('btn-add-line').style.display = 'flex';
+      }
+      
+      updateTotal();
+      renumberLines();
+    }, 300);
+  }
+}
+
+function renumberLines() {
+  var lines = document.querySelectorAll('.input-line');
+  lines.forEach(function(line, index) {
+    var number = index + 1;
+    line.querySelector('.line-number').textContent = number;
+  });
+}
+
+// ─────── SAUVEGARDE VÉHICULE ───────
+function sauvegarderVehicule() {
+  var nom = document.getElementById('input-nom').value.trim();
+  if (!nom) {
+    showToast('Entrez le nom du véhicule', 'error');
+    return;
+  }
+  
+  var inputs = document.querySelectorAll('.time-input');
+  var lignesTemps = [];
+  var total = 0;
+  
+  inputs.forEach(function(input) {
+    var val = input.value.trim().replace(',', '.');
+    if (val && !isNaN(val)) {
+      var centH = parseFloat(val);
+      lignesTemps.push(centH);
+      total += centH;
+    }
+  });
+  
+  if (lignesTemps.length === 0 || total === 0) {
+    showToast('Ajoutez au moins un temps', 'error');
+    return;
+  }
+  
+  if (vehiculeEditIndex >= 0) {
+    // Modification
+    vehicules[vehiculeEditIndex].nom = nom;
+    vehicules[vehiculeEditIndex].tempsPrevuCentH = total;
+    vehicules[vehiculeEditIndex].lignesTemps = lignesTemps;
+    showToast('"' + nom + '" mis à jour !', 'success');
+  } else {
+    // Nouveau
+    vehicules.push({
+      nom: nom,
+      tempsPrevuCentH: total,
+      lignesTemps: lignesTemps,
+      tempsReelSeconds: 0,
+      timerRunning: false,
+      timerStopped: false,
+      dateCreation: new Date().toISOString()
+    });
+    showToast('"' + nom + '" ajouté !', 'success');
+  }
+  
+  sauvegarderVehicules(vehicules);
+  fermerModal();
+  renderAll();
+}
+
+function supprimerVehicule() {
+  if (vehiculeEditIndex < 0) return;
+  var nom = vehicules[vehiculeEditIndex].nom;
+  clearInterval(vehicleTimerIntervals[vehiculeEditIndex]);
+  delete vehicleTimerIntervals[vehiculeEditIndex];
+  vehicules.splice(vehiculeEditIndex, 1);
+  sauvegarderVehicules(vehicules);
+  fermerModal();
+  renderAll();
+  showToast('"' + nom + '" supprimé', 'info');
+}
+
+// ─────── MODALS ───────
+function ouvrirModal() {
+  document.getElementById('modal-overlay').classList.add('active');
+  document.getElementById('modal-overlay').setAttribute('aria-hidden', 'false');
+  if (vehiculeEditIndex < 0) {
+    setTimeout(function() {
+      document.getElementById('input-nom').focus();
+    }, 400);
+  }
+}
+
+function fermerModal() {
+  document.getElementById('modal-overlay').classList.remove('active');
+  document.getElementById('modal-overlay').setAttribute('aria-hidden', 'true');
+  renderAll();
+}
+
+function ouvrirConfirmVider() {
+  document.getElementById('confirm-overlay').classList.add('active');
+}
+
+function fermerConfirm() {
+  document.getElementById('confirm-overlay').classList.remove('active');
+}
+
+function viderTout() {
+  for (var k in vehicleTimerIntervals) clearInterval(vehicleTimerIntervals[k]);
+  vehicleTimerIntervals = {};
+  vehicules = [];
+  sauvegarderVehicules(vehicules);
+  sauvegarderGlobales({ inactiviteSeconds: 0, pressionSeconds: 0, dateDebut: new Date().toISOString() });
+  if (inacRunning) toggleInactivite();
+  if (pressionRunning) togglePression();
+  fermerConfirm();
+  renderAll();
+  showToast('Données effacées !', 'info');
+}
+
+// ─────── EXPORT PNG ───────
+function exporterPDF() {
+  if (vehicules.length === 0) {
+    showToast('Aucun véhicule à exporter', 'error');
+    return;
+  }
+  
+  var c = document.createElement('canvas');
+  var s = 2, pw = 595 * s, ph = 842 * s;
+  c.width = pw;
+  c.height = ph;
+  var x = c.getContext('2d');
+  
+  // Fond blanc
+  x.fillStyle = '#ffffff';
+  x.fillRect(0, 0, pw, ph);
+  
+  // Header sombre
+  x.fillStyle = '#0f1419';
+  x.fillRect(0, 0, pw, 80 * s);
+  
+  // Titre
+  x.fillStyle = '#ff6b35';
+  x.font = 'bold ' + (14 * s) + 'px sans-serif';
+  x.fillText('⚡ BILAN PRODUCTIVITÉ ATELIER', 30 * s, 35 * s);
+  
+  // Date
+  var d = new Date(), g = chargerGlobales();
+  x.fillStyle = '#9ca3af';
+  x.font = (10 * s) + 'px sans-serif';
+  x.fillText(d.toLocaleDateString('fr-FR'), 30 * s, 55 * s);
+  
+  // Stats globales
+  x.fillStyle = '#e8eaed';
+  x.font = 'bold ' + (11 * s) + 'px sans-serif';
+  x.textAlign = 'right';
+  x.fillText('Pause: ' + formatTime(g.inactiviteSeconds) + ' | Urgent: ' + formatTime(g.pressionSeconds), pw - 30 * s, 35 * s);
+  
+  var totalPrevuSeconds = centHToSeconds(vehicules.reduce(function(sum, v) { return sum + v.tempsPrevuCentH; }, 0));
+  var totalReelSeconds = vehicules.reduce(function(sum, v) { return sum + v.tempsReelSeconds; }, 0);
+  var bilanSeconds = totalReelSeconds > 0 ? (totalPrevuSeconds - totalReelSeconds - g.inactiviteSeconds) : 0;
+  var bilanLabel = totalReelSeconds > 0 ? formatDifference(bilanSeconds) : '—';
+  var bilanColor = bilanSeconds > 0 ? '#10b981' : (bilanSeconds < 0 ? '#ef4444' : '#ff6b35');
+  
+  x.fillStyle = bilanColor;
+  x.fillText('BILAN: ' + bilanLabel, pw - 30 * s, 55 * s);
+  x.fillStyle = '#e8eaed';
+  x.fillText(vehicules.length + ' véhicule(s) | ', pw - 30 * s - x.measureText('BILAN: ' + bilanLabel).width - 10 * s, 55 * s);
+  x.textAlign = 'left';
+  
+  // Table
+  var y = 100 * s;
+  var cols = [30, 200, 340, 430].map(function(c) { return c * s; });
+  
+  // Header table
+  x.fillStyle = '#1a1f28';
+  x.fillRect(20 * s, y, pw - 40 * s, 28 * s);
+  x.fillStyle = '#e8eaed';
+  x.font = 'bold ' + (9 * s) + 'px sans-serif';
+  ['VÉHICULE', 'PRÉVU', 'RÉEL', 'DIFFÉRENCE'].forEach(function(h, i) {
+    x.fillText(h, cols[i], y + 18 * s);
+  });
+  y += 32 * s;
+  
+  // Lignes véhicules
+  vehicules.forEach(function(v, idx) {
+    x.fillStyle = idx % 2 === 0 ? '#f8fafc' : '#f1f5f9';
+    x.fillRect(20 * s, y, pw - 40 * s, 26 * s);
+    
+    var diff = calculerDifference(v);
+    x.fillStyle = diff.couleur;
+    x.fillRect(20 * s, y, 4 * s, 26 * s);
+    
+    x.font = (9 * s) + 'px sans-serif';
+    x.fillStyle = '#1a1f28';
+    x.fillText(v.nom.substring(0, 22), cols[0], y + 17 * s);
+    x.fillText(v.tempsPrevuCentH.toFixed(2), cols[1], y + 17 * s);
+    x.fillText(v.tempsReelSeconds ? secondesToCentH(v.tempsReelSeconds).toFixed(2) : '—', cols[2], y + 17 * s);
+    
+    x.fillStyle = diff.couleur;
+    x.font = 'bold ' + (9 * s) + 'px sans-serif';
+    x.fillText(diff.label, cols[3], y + 17 * s);
+    
+    y += 28 * s;
+  });
+  
+  // Footer
+  x.fillStyle = '#9ca3af';
+  x.font = (8 * s) + 'px sans-serif';
+  x.textAlign = 'center';
+  x.fillText('Généré par ⚡ Productivité Atelier', pw / 2, ph - 30 * s);
+  
+  c.toBlob(function(blob) {
+    var u = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = u;
+    a.download = 'bilan-productivite-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(u);
+    showToast('Bilan exporté ! 📄', 'success');
+  }, 'image/png');
+}
+
+// ─────── TOAST ───────
+function showToast(msg, type) {
+  type = type || 'info';
+  var container = document.getElementById('toast-container');
+  var toast = document.createElement('div');
+  toast.className = 'toast toast-' + type;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(function() {
+    toast.classList.add('toast-out');
+    setTimeout(function() {
+      toast.remove();
+    }, 300);
+  }, 2500);
+}
+
+// ─────── EVENTS ───────
+document.addEventListener('DOMContentLoaded', function() {
+  vehicules = chargerVehicules();
+  renderAll();
+  
+  // Header
+  document.getElementById('btn-pdf').addEventListener('click', exporterPDF);
+  document.getElementById('btn-vider').addEventListener('click', ouvrirConfirmVider);
+  
+  // Bottom bar
+  document.getElementById('btn-bottom-inac').addEventListener('click', toggleInactivite);
+  document.getElementById('btn-bottom-fab').addEventListener('click', ouvrirNouveau);
+  document.getElementById('btn-bottom-pression').addEventListener('click', togglePression);
+  
+  // Modal véhicule
+  document.getElementById('modal-close').addEventListener('click', fermerModal);
+  document.getElementById('modal-overlay').addEventListener('click', function(e) {
+    if (e.target === e.currentTarget) fermerModal();
+  });
+  document.getElementById('btn-add-line').addEventListener('click', addLine);
+  document.getElementById('btn-valider').addEventListener('click', sauvegarderVehicule);
+  document.getElementById('btn-supprimer').addEventListener('click', supprimerVehicule);
+  
+  // Modal confirmation
+  document.getElementById('confirm-cancel').addEventListener('click', fermerConfirm);
+  document.getElementById('confirm-cancel-x').addEventListener('click', fermerConfirm);
+  document.getElementById('confirm-ok').addEventListener('click', viderTout);
+  
+  // Inputs temps
+  document.addEventListener('input', function(e) {
+    if (e.target.classList.contains('time-input')) {
+      updateTotal();
+    }
+  });
+  
+  // Enregistrer le Service Worker pour la PWA
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('./sw.js')
+        .then(function(registration) {
+          console.log('Service Worker enregistré avec succès:', registration.scope);
+        })
+        .catch(function(error) {
+          console.log('Échec de l\'enregistrement du Service Worker:', error);
+        });
+    });
+  }
+});
+
+// Exposer removeLine globalement
+window.removeLine = removeLine;
+</script>
+</body>
+</html>

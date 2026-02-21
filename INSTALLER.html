@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📱 Installer Productivité Atelier</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f1419 0%, #1a1f28 100%);
+      color: #e8eaed;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #1a1f28;
+      border-radius: 20px;
+      padding: 40px 30px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 32px;
+      color: #ff6b35;
+      margin-bottom: 10px;
+      font-weight: 900;
+    }
+    .subtitle {
+      color: #9ca3af;
+      font-size: 16px;
+    }
+    .step {
+      background: #242b36;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-left: 4px solid #ff6b35;
+    }
+    .step-number {
+      display: inline-block;
+      width: 32px;
+      height: 32px;
+      background: #ff6b35;
+      color: white;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 32px;
+      font-weight: 700;
+      margin-right: 12px;
+      font-size: 18px;
+    }
+    .step-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #e8eaed;
+      margin-bottom: 10px;
+    }
+    .step-desc {
+      color: #9ca3af;
+      line-height: 1.6;
+      font-size: 15px;
+      margin-left: 44px;
+    }
+    .platform {
+      background: rgba(255, 107, 53, 0.1);
+      border: 2px solid #ff6b35;
+      border-radius: 12px;
+      padding: 15px 20px;
+      margin-bottom: 30px;
+      font-weight: 700;
+      color: #ff6b35;
+      text-align: center;
+      font-size: 18px;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, #ff6b35, #ffa500);
+      color: white;
+      text-decoration: none;
+      text-align: center;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      margin-top: 30px;
+      box-shadow: 0 4px 16px rgba(255, 107, 53, 0.4);
+      transition: transform 0.2s;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+    .note {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid #10b981;
+      border-radius: 12px;
+      padding: 15px;
+      margin-top: 30px;
+      color: #10b981;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .note strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="icon">⚡</div>
+      <h1>Productivité Atelier</h1>
+      <p class="subtitle">Installer comme une application</p>
+    </div>
+
+    <div class="platform">📱 Sur Android (Chrome)</div>
+    
+    <div class="step">
+      <div class="step-title">
+        <span class="step-number">1</span>
+        Ouvrir dans Chrome
+      </div>
+      <div class="step-desc">
+        Cliquez sur le bouton ci-dessous pour ouvrir l'application dans Chrome.
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-title">
+        <span class="step-number">2</span>
+        Menu Chrome
+      </div>
+      <div class="step-desc">
+        Appuyez sur les <strong>3 points verticaux</strong> en haut à droite de Chrome.
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-title">
+        <span class="step-number">3</span>
+        Installer l'application
+      </div>
+      <div class="step-desc">
+        Sélectionnez <strong>"Ajouter à l'écran d'accueil"</strong> ou <strong>"Installer l'application"</strong>.
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-title">
+        <span class="step-number">4</span>
+        C'est prêt ! 🎉
+      </div>
+      <div class="step-desc">
+        L'icône ⚡ apparaîtra sur votre écran d'accueil. L'app fonctionne maintenant <strong>hors ligne</strong> !
+      </div>
+    </div>
+
+    <a href="productivite-orange.html" class="btn">🚀 Ouvrir l'application</a>
+
+    <div class="note">
+      <strong>💡 Sur iOS (iPhone/iPad) :</strong>
+      1. Ouvrir dans Safari<br>
+      2. Appuyer sur le bouton "Partager" 📤<br>
+      3. Sélectionner "Sur l'écran d'accueil"<br>
+      4. Appuyer sur "Ajouter"
+    </div>
+
+    <div class="note" style="background: rgba(239, 68, 68, 0.1); border-color: #ef4444; color: #ef4444; margin-top: 20px;">
+      <strong>⚠️ Important :</strong>
+      Les 3 fichiers (productivite-orange.html, manifest.json, sw.js) doivent être dans le même dossier pour que l'installation fonctionne !
+    </div>
+  </div>
+</body>
+</html>
