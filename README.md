@@ -7,14 +7,14 @@ Application de gestion de productivité pour atelier automobile.
 ### Option 1 : Installation directe (PWA)
 
 #### Sur Android (Chrome/Edge) :
-1. Ouvrez `productivite-orange.html` dans Chrome
+1. Ouvrez `index.html` dans Chrome
 2. Appuyez sur les **3 points** en haut à droite
 3. Sélectionnez **"Ajouter à l'écran d'accueil"** ou **"Installer l'application"**
 4. L'icône ⚡ apparaîtra sur votre écran d'accueil
 5. L'app fonctionne maintenant hors ligne !
 
 #### Sur iOS (Safari) :
-1. Ouvrez `productivite-orange.html` dans Safari
+1. Ouvrez `index.html` dans Safari
 2. Appuyez sur le bouton **Partager** (carré avec flèche)
 3. Faites défiler et sélectionnez **"Sur l'écran d'accueil"**
 4. Appuyez sur **"Ajouter"**
