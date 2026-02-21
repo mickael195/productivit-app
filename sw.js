@@ -1,6 +1,6 @@
 const CACHE_NAME = 'productivite-atelier-v1';
 const urlsToCache = [
-  './index.html',
+  'https://mickael195.github.io/productivit-app/',
   'https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;900&family=Barlow:wght@400;500;600;700&display=swap'
 ];
 
@@ -67,7 +67,7 @@ self.addEventListener('fetch', function(event) {
       })
       .catch(function() {
         // En cas d'erreur réseau, retourner une page par défaut si disponible
-        return caches.match('./index.html');
+        return caches.match('https://mickael195.github.io/productivit-app/');
       })
   );
 });
