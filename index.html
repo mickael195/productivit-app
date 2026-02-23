@@ -950,6 +950,7 @@ body::before {
 <script>
 /* ═══════════════════════════════════════════════════════════
    ⚡ PRODUCTIVITÉ ATELIER - LOGIQUE PRINCIPALE
+   VERSION AMÉLIORÉE - TIMESTAMPS POUR SURVIVRE À LA VEILLE
    ═══════════════════════════════════════════════════════════ */
 
 // ─────── VARIABLES GLOBALES ───────
@@ -958,21 +959,69 @@ var vehiculeEditIndex = -1;
 var lineCounter = 1;
 var MAX_LINES = 15;
 
-// Timers véhicules
-var vehicleTimerIntervals = {};
+// Timers d'affichage uniquement (mise à jour visuelle toutes les secondes)
+var displayUpdateInterval = null;
 
-// Compteurs globaux
-var inacRunning = false;
-var pressionRunning = false;
-var inacInterval = null;
-var pressionInterval = null;
+// ─────── UTILITAIRES TIMESTAMP ───────
+
+// Calculer le temps réel écoulé basé sur les timestamps
+function getElapsedSeconds(startTimestamp, accumulatedSeconds) {
+  if (!startTimestamp) return accumulatedSeconds || 0;
+  var now = Date.now();
+  var elapsedSinceStart = Math.floor((now - startTimestamp) / 1000);
+  return (accumulatedSeconds || 0) + elapsedSinceStart;
+}
 
 // ─────── LOCAL STORAGE ───────
 function chargerVehicules() {
   try {
     var data = localStorage.getItem('vehicules_atelier');
-    return data ? JSON.parse(data) : [];
-  } catch(e) { return []; }
+    if (!data) return [];
+    var vehicules = JSON.parse(data);
+    
+    // MIGRATION : Convertir ancien format (tempsReelSeconds) vers nouveau (accumulatedSeconds + startTimestamp)
+    var needsMigration = false;
+    vehicules = vehicules.map(function(v) {
+      // Si ancien format détecté
+      if (v.tempsReelSeconds !== undefined && v.accumulatedSeconds === undefined) {
+        needsMigration = true;
+        console.log('🔄 Migration véhicule:', v.nom);
+        return {
+          nom: v.nom,
+          tempsPrevuCentH: v.tempsPrevuCentH,
+          lignesTemps: v.lignesTemps || [v.tempsPrevuCentH],
+          accumulatedSeconds: v.tempsReelSeconds || 0,
+          startTimestamp: null,
+          timerRunning: false,
+          timerStopped: v.timerStopped || false,
+          dateCreation: v.dateCreation || new Date().toISOString()
+        };
+      }
+      
+      // Nouveau format - s'assurer que tous les champs existent
+      return {
+        nom: v.nom,
+        tempsPrevuCentH: v.tempsPrevuCentH,
+        lignesTemps: v.lignesTemps || [v.tempsPrevuCentH],
+        accumulatedSeconds: v.accumulatedSeconds || 0,
+        startTimestamp: v.startTimestamp || null,
+        timerRunning: v.timerRunning || false,
+        timerStopped: v.timerStopped || false,
+        dateCreation: v.dateCreation || new Date().toISOString()
+      };
+    });
+    
+    // Sauvegarder le format migré
+    if (needsMigration) {
+      console.log('✅ Migration terminée - sauvegarde...');
+      localStorage.setItem('vehicules_atelier', JSON.stringify(vehicules));
+    }
+    
+    return vehicules;
+  } catch(e) { 
+    console.error('❌ Erreur chargement véhicules:', e);
+    return []; 
+  }
 }
 
 function sauvegarderVehicules(arr) {
@@ -984,10 +1033,49 @@ function sauvegarderVehicules(arr) {
 function chargerGlobales() {
   try {
     var data = localStorage.getItem('globales_atelier');
-    if (!data) return { inactiviteSeconds: 0, pressionSeconds: 0, dateDebut: new Date().toISOString() };
-    return JSON.parse(data);
+    if (!data) {
+      return { 
+        inactiviteSeconds: 0,
+        inactiviteStartTimestamp: null,
+        pressionSeconds: 0, 
+        pressionStartTimestamp: null,
+        dateDebut: new Date().toISOString() 
+      };
+    }
+    
+    var globales = JSON.parse(data);
+    
+    // MIGRATION : Ajouter les nouveaux champs timestamp s'ils n'existent pas
+    var needsMigration = false;
+    if (globales.inactiviteStartTimestamp === undefined) {
+      globales.inactiviteStartTimestamp = null;
+      needsMigration = true;
+    }
+    if (globales.pressionStartTimestamp === undefined) {
+      globales.pressionStartTimestamp = null;
+      needsMigration = true;
+    }
+    if (!globales.dateDebut) {
+      globales.dateDebut = new Date().toISOString();
+      needsMigration = true;
+    }
+    
+    // Sauvegarder le format migré
+    if (needsMigration) {
+      console.log('🔄 Migration compteurs globaux');
+      localStorage.setItem('globales_atelier', JSON.stringify(globales));
+    }
+    
+    return globales;
   } catch(e) {
-    return { inactiviteSeconds: 0, pressionSeconds: 0, dateDebut: new Date().toISOString() };
+    console.error('❌ Erreur chargement globales:', e);
+    return { 
+      inactiviteSeconds: 0,
+      inactiviteStartTimestamp: null,
+      pressionSeconds: 0,
+      pressionStartTimestamp: null,
+      dateDebut: new Date().toISOString() 
+    };
   }
 }
 
@@ -1017,7 +1105,6 @@ function formatTime(seconds) {
   return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
 }
 
-// Nouveau : Formater différence en heures + minutes (ex: +1h 30min)
 function formatDifference(diffSeconds) {
   var absSeconds = Math.abs(diffSeconds);
   var h = Math.floor(absSeconds / 3600);
@@ -1038,20 +1125,26 @@ function formatDifference(diffSeconds) {
 
 // ─────── CALCUL DIFFÉRENCE ───────
 function calculerDifference(v) {
-  if (!v.tempsReelSeconds || v.tempsReelSeconds === 0) {
+  var currentSeconds = v.timerRunning 
+    ? getElapsedSeconds(v.startTimestamp, v.accumulatedSeconds)
+    : (v.accumulatedSeconds || 0);
+    
+  if (!currentSeconds || currentSeconds === 0) {
     return { diffSeconds: null, couleur: '#ff6b35', label: '—' };
   }
   
   var prevuSeconds = centHToSeconds(v.tempsPrevuCentH);
-  var diffBrut = prevuSeconds - v.tempsReelSeconds;
+  var diffBrut = prevuSeconds - currentSeconds;
   
-  // L'INACTIVITÉ SOUSTRAIT DU TEMPS GAGNÉ (ou empire le temps perdu)
   var g = chargerGlobales();
-  var diffSeconds = diffBrut - g.inactiviteSeconds;
+  var inacSeconds = g.inactiviteStartTimestamp 
+    ? getElapsedSeconds(g.inactiviteStartTimestamp, g.inactiviteSeconds)
+    : g.inactiviteSeconds;
+  var diffSeconds = diffBrut - inacSeconds;
   
-  var couleur = '#ff6b35'; // Neutre orange
-  if (diffSeconds > 0) couleur = '#10b981'; // Vert = temps gagné
-  else if (diffSeconds < 0) couleur = '#ef4444'; // Rouge = temps perdu
+  var couleur = '#ff6b35';
+  if (diffSeconds > 0) couleur = '#10b981';
+  else if (diffSeconds < 0) couleur = '#ef4444';
   
   var label = formatDifference(diffSeconds);
   
@@ -1068,19 +1161,24 @@ function renderAll() {
 function renderStats() {
   var nbVehicules = vehicules.length;
   var totalPrevuCentH = vehicules.reduce(function(sum, v) { return sum + v.tempsPrevuCentH; }, 0);
-  var totalReelSeconds = vehicules.reduce(function(sum, v) { return sum + v.tempsReelSeconds; }, 0);
+  
+  var totalReelSeconds = vehicules.reduce(function(sum, v) {
+    if (v.timerRunning) {
+      return sum + getElapsedSeconds(v.startTimestamp, v.accumulatedSeconds);
+    }
+    return sum + (v.accumulatedSeconds || 0);
+  }, 0);
+  
   var totalReelCentH = secondesToCentH(totalReelSeconds);
   
   document.getElementById('stat-vehicules').textContent = nbVehicules;
   document.getElementById('stat-temps-prevu').textContent = totalPrevuCentH.toFixed(2);
   document.getElementById('stat-temps-reel').textContent = totalReelCentH.toFixed(2);
   
-  // Calcul du bilan total (temps gagné/perdu)
   var bilanElement = document.getElementById('stat-bilan');
   var bilanChip = document.getElementById('stat-bilan-chip');
   
   if (totalReelSeconds === 0) {
-    // Pas encore de temps réel
     bilanElement.textContent = '—';
     bilanElement.className = 'stat-value stat-bilan-value';
     bilanChip.classList.remove('bilan-positif', 'bilan-negatif');
@@ -1088,14 +1186,15 @@ function renderStats() {
     var totalPrevuSeconds = centHToSeconds(totalPrevuCentH);
     var diffBrut = totalPrevuSeconds - totalReelSeconds;
     
-    // Soustraire l'inactivité du temps gagné
     var g = chargerGlobales();
-    var bilanSeconds = diffBrut - g.inactiviteSeconds;
+    var inacSeconds = g.inactiviteStartTimestamp 
+      ? getElapsedSeconds(g.inactiviteStartTimestamp, g.inactiviteSeconds)
+      : g.inactiviteSeconds;
+    var bilanSeconds = diffBrut - inacSeconds;
     
     var bilanLabel = formatDifference(bilanSeconds);
     bilanElement.textContent = bilanLabel;
     
-    // Appliquer les couleurs
     bilanElement.className = 'stat-value stat-bilan-value';
     bilanChip.classList.remove('bilan-positif', 'bilan-negatif');
     
@@ -1138,9 +1237,13 @@ function renderVehicules() {
     badge.className = 'vehicle-status-badge ' + statusClass;
     badge.innerHTML = '<div class="status-diff">' + diff.label + '</div><div class="status-icon">⏱️</div>';
     
+    var currentSeconds = v.timerRunning 
+      ? getElapsedSeconds(v.startTimestamp, v.accumulatedSeconds)
+      : (v.accumulatedSeconds || 0);
+    
     var content = document.createElement('div');
     content.className = 'vehicle-content';
-    content.innerHTML = '<div class="vehicle-name">' + v.nom + '</div><div class="vehicle-detail"><span>Prévu: ' + v.tempsPrevuCentH.toFixed(2) + '</span><span>•</span><span>Réel: ' + (v.tempsReelSeconds ? secondesToCentH(v.tempsReelSeconds).toFixed(2) : '—') + '</span></div>';
+    content.innerHTML = '<div class="vehicle-name">' + v.nom + '</div><div class="vehicle-detail"><span>Prévu: ' + v.tempsPrevuCentH.toFixed(2) + '</span><span>•</span><span>Réel: ' + (currentSeconds ? secondesToCentH(currentSeconds).toFixed(2) : '—') + '</span></div>';
     
     topDiv.appendChild(badge);
     topDiv.appendChild(content);
@@ -1152,7 +1255,7 @@ function renderVehicules() {
     timerDisplay.className = 'timer-display';
     if (v.timerRunning) timerDisplay.classList.add('running');
     else if (v.timerStopped) timerDisplay.classList.add('stopped');
-    timerDisplay.textContent = formatTime(v.tempsReelSeconds);
+    timerDisplay.textContent = formatTime(currentSeconds);
     
     var playBtn = document.createElement('button');
     playBtn.className = 'timer-btn play';
@@ -1176,10 +1279,17 @@ function renderVehicules() {
 
 function renderCompteurs() {
   var g = chargerGlobales();
-  document.getElementById('inac-time').textContent = formatTime(g.inactiviteSeconds);
-  document.getElementById('pression-time').textContent = formatTime(g.pressionSeconds);
   
-  // Afficher la date de début
+  var inacSeconds = g.inactiviteStartTimestamp 
+    ? getElapsedSeconds(g.inactiviteStartTimestamp, g.inactiviteSeconds)
+    : g.inactiviteSeconds;
+  var pressionSeconds = g.pressionStartTimestamp 
+    ? getElapsedSeconds(g.pressionStartTimestamp, g.pressionSeconds)
+    : g.pressionSeconds;
+  
+  document.getElementById('inac-time').textContent = formatTime(inacSeconds);
+  document.getElementById('pression-time').textContent = formatTime(pressionSeconds);
+  
   if (g.dateDebut) {
     var dateDebut = new Date(g.dateDebut);
     var dateStr = dateDebut.getDate() + '/' + (dateDebut.getMonth() + 1);
@@ -1191,148 +1301,110 @@ function renderCompteurs() {
   var timeInac = document.getElementById('inac-time');
   var timePression = document.getElementById('pression-time');
   
+  var inacRunning = g.inactiviteStartTimestamp !== null;
+  var pressionRunning = g.pressionStartTimestamp !== null;
+  
   if (inacRunning) {
     chipInac.classList.add('active-inac');
     timeInac.classList.add('blink');
+    document.getElementById('btn-bottom-inac').classList.add('active');
   } else {
     chipInac.classList.remove('active-inac');
     timeInac.classList.remove('blink');
+    document.getElementById('btn-bottom-inac').classList.remove('active');
   }
   
   if (pressionRunning) {
     chipPression.classList.add('active-pression');
     timePression.classList.add('blink');
+    document.getElementById('btn-bottom-pression').classList.add('active');
   } else {
     chipPression.classList.remove('active-pression');
     timePression.classList.remove('blink');
+    document.getElementById('btn-bottom-pression').classList.remove('active');
   }
 }
 
-// ─────── TIMERS VÉHICULE ───────
+// ─────── TIMERS VÉHICULE (BASÉS SUR TIMESTAMPS) ───────
 function toggleVehicleTimer(idx) {
   var v = vehicules[idx];
   
   if (v.timerRunning) {
-    // Pause
-    clearInterval(vehicleTimerIntervals[idx]);
-    delete vehicleTimerIntervals[idx];
+    // PAUSE - sauvegarder le temps accumulé
+    var elapsed = getElapsedSeconds(v.startTimestamp, v.accumulatedSeconds);
+    v.accumulatedSeconds = elapsed;
+    v.startTimestamp = null;
     v.timerRunning = false;
   } else {
-    // Play
+    // PLAY - démarrer avec timestamp actuel
+    v.startTimestamp = Date.now();
     v.timerRunning = true;
     v.timerStopped = false;
-    vehicleTimerIntervals[idx] = setInterval(function() {
-      v.tempsReelSeconds++;
-      sauvegarderVehicules(vehicules);
-      // Ne mettre à jour QUE ce véhicule pour éviter le clignotement
-      updateVehicleDisplay(idx);
-      renderStats(); // Mettre à jour les stats globales
-    }, 1000);
   }
   
   sauvegarderVehicules(vehicules);
   renderAll();
 }
 
-function updateVehicleDisplay(idx) {
-  var v = vehicules[idx];
-  var carousel = document.getElementById('carousel');
-  var cards = carousel.querySelectorAll('.vehicle-card');
-  
-  if (!cards[idx]) return;
-  
-  var card = cards[idx];
-  
-  // Mettre à jour le timer display
-  var timerDisplay = card.querySelector('.timer-display');
-  if (timerDisplay) {
-    timerDisplay.textContent = formatTime(v.tempsReelSeconds);
-  }
-  
-  // Mettre à jour le badge de différence
-  var diff = calculerDifference(v);
-  var statusBadge = card.querySelector('.vehicle-status-badge');
-  if (statusBadge) {
-    // Retirer les anciennes classes
-    statusBadge.classList.remove('status-vert', 'status-rouge', 'status-neutre');
-    
-    // Ajouter la nouvelle classe
-    var statusClass = 'status-neutre';
-    if (diff.diffSeconds !== null) {
-      if (diff.diffSeconds > 0) statusClass = 'status-vert';
-      else if (diff.diffSeconds < 0) statusClass = 'status-rouge';
-    }
-    statusBadge.classList.add(statusClass);
-    
-    // Mettre à jour le label
-    var statusDiff = statusBadge.querySelector('.status-diff');
-    if (statusDiff) {
-      statusDiff.textContent = diff.label;
-    }
-  }
-  
-  // Mettre à jour le détail (temps réel)
-  var detail = card.querySelector('.vehicle-detail');
-  if (detail) {
-    detail.innerHTML = '<span>Prévu: ' + v.tempsPrevuCentH.toFixed(2) + '</span><span>•</span><span>Réel: ' + (v.tempsReelSeconds ? secondesToCentH(v.tempsReelSeconds).toFixed(2) : '—') + '</span>';
-  }
-}
-
 function stopVehicleTimer(idx) {
   var v = vehicules[idx];
-  clearInterval(vehicleTimerIntervals[idx]);
-  delete vehicleTimerIntervals[idx];
+  
+  if (v.timerRunning) {
+    var elapsed = getElapsedSeconds(v.startTimestamp, v.accumulatedSeconds);
+    v.accumulatedSeconds = elapsed;
+    v.startTimestamp = null;
+  }
+  
   v.timerRunning = false;
   v.timerStopped = true;
   sauvegarderVehicules(vehicules);
   renderAll();
 }
 
-// ─────── COMPTEURS GLOBAUX ───────
+// ─────── COMPTEURS GLOBAUX (BASÉS SUR TIMESTAMPS) ───────
 function toggleInactivite() {
-  if (inacRunning) {
-    clearInterval(inacInterval);
-    inacInterval = null;
-    inacRunning = false;
-    document.getElementById('btn-bottom-inac').classList.remove('active');
+  var g = chargerGlobales();
+  
+  if (g.inactiviteStartTimestamp) {
+    // PAUSE - sauvegarder le temps accumulé
+    var elapsed = getElapsedSeconds(g.inactiviteStartTimestamp, g.inactiviteSeconds);
+    g.inactiviteSeconds = elapsed;
+    g.inactiviteStartTimestamp = null;
   } else {
-    inacRunning = true;
-    document.getElementById('btn-bottom-inac').classList.add('active');
-    inacInterval = setInterval(function() {
-      var g = chargerGlobales();
-      g.inactiviteSeconds++;
-      sauvegarderGlobales(g);
-      renderCompteurs();
-      renderStats(); // Mettre à jour le bilan global
-      // Mettre à jour TOUS les badges de différence car l'inactivité impacte tout
-      updateAllDifferences();
-    }, 1000);
+    // PLAY - démarrer avec timestamp actuel
+    g.inactiviteStartTimestamp = Date.now();
   }
+  
+  sauvegarderGlobales(g);
   renderCompteurs();
+  renderStats();
+  updateAllDifferences();
 }
 
 function togglePression() {
-  if (pressionRunning) {
-    clearInterval(pressionInterval);
-    pressionInterval = null;
-    pressionRunning = false;
-    document.getElementById('btn-bottom-pression').classList.remove('active');
+  var g = chargerGlobales();
+  
+  if (g.pressionStartTimestamp) {
+    // PAUSE
+    var elapsed = getElapsedSeconds(g.pressionStartTimestamp, g.pressionSeconds);
+    g.pressionSeconds = elapsed;
+    g.pressionStartTimestamp = null;
   } else {
-    pressionRunning = true;
-    document.getElementById('btn-bottom-pression').classList.add('active');
-    pressionInterval = setInterval(function() {
-      var g = chargerGlobales();
-      g.pressionSeconds++;
-      sauvegarderGlobales(g);
-      renderCompteurs();
-    }, 1000);
+    // PLAY
+    g.pressionStartTimestamp = Date.now();
   }
+  
+  sauvegarderGlobales(g);
   renderCompteurs();
 }
 
 function updateAllDifferences() {
   vehicules.forEach(function(v, idx) {
-    if (!v.tempsReelSeconds || v.tempsReelSeconds === 0) return;
+    var currentSeconds = v.timerRunning 
+      ? getElapsedSeconds(v.startTimestamp, v.accumulatedSeconds)
+      : (v.accumulatedSeconds || 0);
+      
+    if (!currentSeconds || currentSeconds === 0) return;
     
     var carousel = document.getElementById('carousel');
     var cards = carousel.querySelectorAll('.vehicle-card');
@@ -1360,6 +1432,47 @@ function updateAllDifferences() {
   });
 }
 
+// ─────── BOUCLE DE MISE À JOUR VISUELLE ───────
+function startDisplayUpdates() {
+  if (displayUpdateInterval) return;
+  
+  displayUpdateInterval = setInterval(function() {
+    renderAll();
+  }, 1000);
+}
+
+function stopDisplayUpdates() {
+  if (displayUpdateInterval) {
+    clearInterval(displayUpdateInterval);
+    displayUpdateInterval = null;
+  }
+}
+
+// ─────── PAGE VISIBILITY API - GÉRER VEILLE/RÉVEIL ───────
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
+    // APP EN VEILLE - pas besoin de mettre à jour l'affichage
+    console.log('⏸️ App en veille - timestamps sauvegardés');
+    stopDisplayUpdates();
+  } else {
+    // APP RÉVEILLÉE - recalculer tout basé sur les timestamps
+    console.log('⚡ App réveillée - recalcul des timers');
+    
+    // Recharger les données depuis localStorage (au cas où modifiées par un autre onglet)
+    vehicules = chargerVehicules();
+    
+    // Vérifier l'état des compteurs globaux aussi
+    var g = chargerGlobales();
+    console.log('📊 État au réveil - Véhicules:', vehicules.length, '| Inactivité actif:', !!g.inactiviteStartTimestamp, '| Pression actif:', !!g.pressionStartTimestamp);
+    
+    // Redémarrer la mise à jour visuelle
+    startDisplayUpdates();
+    
+    // Mise à jour immédiate
+    renderAll();
+  }
+});
+
 // ─────── MODAL VÉHICULE ───────
 function ouvrirNouveau() {
   vehiculeEditIndex = -1;
@@ -1367,7 +1480,6 @@ function ouvrirNouveau() {
   document.getElementById('btn-supprimer').style.display = 'none';
   document.getElementById('input-nom').value = '';
   
-  // Reset lignes
   var container = document.getElementById('inputs-container');
   container.innerHTML = '<div class="input-line" data-line="1"><span class="line-number">1</span><div class="input-wrapper"><input type="text" class="time-input" placeholder="Ex: 0.45" autocomplete="off" inputmode="decimal" data-line="1"></div></div>';
   lineCounter = 1;
@@ -1384,12 +1496,9 @@ function ouvrirEditer(idx) {
   document.getElementById('btn-supprimer').style.display = 'block';
   document.getElementById('input-nom').value = v.nom;
   
-  // Charger les lignes existantes
   var container = document.getElementById('inputs-container');
   container.innerHTML = '';
   
-  // On suppose que v.lignesTemps est un array de nombres (centièmes d'heure)
-  // Si pas défini, on utilise juste le total
   var lignes = v.lignesTemps || [v.tempsPrevuCentH];
   lineCounter = 0;
   
@@ -1503,18 +1612,17 @@ function sauvegarderVehicule() {
   }
   
   if (vehiculeEditIndex >= 0) {
-    // Modification
     vehicules[vehiculeEditIndex].nom = nom;
     vehicules[vehiculeEditIndex].tempsPrevuCentH = total;
     vehicules[vehiculeEditIndex].lignesTemps = lignesTemps;
     showToast('"' + nom + '" mis à jour !', 'success');
   } else {
-    // Nouveau
     vehicules.push({
       nom: nom,
       tempsPrevuCentH: total,
       lignesTemps: lignesTemps,
-      tempsReelSeconds: 0,
+      accumulatedSeconds: 0,
+      startTimestamp: null,
       timerRunning: false,
       timerStopped: false,
       dateCreation: new Date().toISOString()
@@ -1530,8 +1638,6 @@ function sauvegarderVehicule() {
 function supprimerVehicule() {
   if (vehiculeEditIndex < 0) return;
   var nom = vehicules[vehiculeEditIndex].nom;
-  clearInterval(vehicleTimerIntervals[vehiculeEditIndex]);
-  delete vehicleTimerIntervals[vehiculeEditIndex];
   vehicules.splice(vehiculeEditIndex, 1);
   sauvegarderVehicules(vehicules);
   fermerModal();
@@ -1565,13 +1671,15 @@ function fermerConfirm() {
 }
 
 function viderTout() {
-  for (var k in vehicleTimerIntervals) clearInterval(vehicleTimerIntervals[k]);
-  vehicleTimerIntervals = {};
   vehicules = [];
   sauvegarderVehicules(vehicules);
-  sauvegarderGlobales({ inactiviteSeconds: 0, pressionSeconds: 0, dateDebut: new Date().toISOString() });
-  if (inacRunning) toggleInactivite();
-  if (pressionRunning) togglePression();
+  sauvegarderGlobales({ 
+    inactiviteSeconds: 0,
+    inactiviteStartTimestamp: null,
+    pressionSeconds: 0,
+    pressionStartTimestamp: null,
+    dateDebut: new Date().toISOString() 
+  });
   fermerConfirm();
   renderAll();
   showToast('Données effacées !', 'info');
@@ -1590,34 +1698,42 @@ function exporterPDF() {
   c.height = ph;
   var x = c.getContext('2d');
   
-  // Fond blanc
   x.fillStyle = '#ffffff';
   x.fillRect(0, 0, pw, ph);
   
-  // Header sombre
   x.fillStyle = '#0f1419';
   x.fillRect(0, 0, pw, 80 * s);
   
-  // Titre
   x.fillStyle = '#ff6b35';
   x.font = 'bold ' + (14 * s) + 'px sans-serif';
   x.fillText('⚡ BILAN PRODUCTIVITÉ ATELIER', 30 * s, 35 * s);
   
-  // Date
   var d = new Date(), g = chargerGlobales();
   x.fillStyle = '#9ca3af';
   x.font = (10 * s) + 'px sans-serif';
   x.fillText(d.toLocaleDateString('fr-FR'), 30 * s, 55 * s);
   
-  // Stats globales
+  var inacSeconds = g.inactiviteStartTimestamp 
+    ? getElapsedSeconds(g.inactiviteStartTimestamp, g.inactiviteSeconds)
+    : g.inactiviteSeconds;
+  var pressionSeconds = g.pressionStartTimestamp 
+    ? getElapsedSeconds(g.pressionStartTimestamp, g.pressionSeconds)
+    : g.pressionSeconds;
+  
   x.fillStyle = '#e8eaed';
   x.font = 'bold ' + (11 * s) + 'px sans-serif';
   x.textAlign = 'right';
-  x.fillText('Pause: ' + formatTime(g.inactiviteSeconds) + ' | Urgent: ' + formatTime(g.pressionSeconds), pw - 30 * s, 35 * s);
+  x.fillText('Pause: ' + formatTime(inacSeconds) + ' | Urgent: ' + formatTime(pressionSeconds), pw - 30 * s, 35 * s);
   
   var totalPrevuSeconds = centHToSeconds(vehicules.reduce(function(sum, v) { return sum + v.tempsPrevuCentH; }, 0));
-  var totalReelSeconds = vehicules.reduce(function(sum, v) { return sum + v.tempsReelSeconds; }, 0);
-  var bilanSeconds = totalReelSeconds > 0 ? (totalPrevuSeconds - totalReelSeconds - g.inactiviteSeconds) : 0;
+  var totalReelSeconds = vehicules.reduce(function(sum, v) {
+    if (v.timerRunning) {
+      return sum + getElapsedSeconds(v.startTimestamp, v.accumulatedSeconds);
+    }
+    return sum + (v.accumulatedSeconds || 0);
+  }, 0);
+  
+  var bilanSeconds = totalReelSeconds > 0 ? (totalPrevuSeconds - totalReelSeconds - inacSeconds) : 0;
   var bilanLabel = totalReelSeconds > 0 ? formatDifference(bilanSeconds) : '—';
   var bilanColor = bilanSeconds > 0 ? '#10b981' : (bilanSeconds < 0 ? '#ef4444' : '#ff6b35');
   
@@ -1627,11 +1743,9 @@ function exporterPDF() {
   x.fillText(vehicules.length + ' véhicule(s) | ', pw - 30 * s - x.measureText('BILAN: ' + bilanLabel).width - 10 * s, 55 * s);
   x.textAlign = 'left';
   
-  // Table
   var y = 100 * s;
   var cols = [30, 200, 340, 430].map(function(c) { return c * s; });
   
-  // Header table
   x.fillStyle = '#1a1f28';
   x.fillRect(20 * s, y, pw - 40 * s, 28 * s);
   x.fillStyle = '#e8eaed';
@@ -1641,7 +1755,6 @@ function exporterPDF() {
   });
   y += 32 * s;
   
-  // Lignes véhicules
   vehicules.forEach(function(v, idx) {
     x.fillStyle = idx % 2 === 0 ? '#f8fafc' : '#f1f5f9';
     x.fillRect(20 * s, y, pw - 40 * s, 26 * s);
@@ -1650,11 +1763,15 @@ function exporterPDF() {
     x.fillStyle = diff.couleur;
     x.fillRect(20 * s, y, 4 * s, 26 * s);
     
+    var currentSeconds = v.timerRunning 
+      ? getElapsedSeconds(v.startTimestamp, v.accumulatedSeconds)
+      : (v.accumulatedSeconds || 0);
+    
     x.font = (9 * s) + 'px sans-serif';
     x.fillStyle = '#1a1f28';
     x.fillText(v.nom.substring(0, 22), cols[0], y + 17 * s);
     x.fillText(v.tempsPrevuCentH.toFixed(2), cols[1], y + 17 * s);
-    x.fillText(v.tempsReelSeconds ? secondesToCentH(v.tempsReelSeconds).toFixed(2) : '—', cols[2], y + 17 * s);
+    x.fillText(currentSeconds ? secondesToCentH(currentSeconds).toFixed(2) : '—', cols[2], y + 17 * s);
     
     x.fillStyle = diff.couleur;
     x.font = 'bold ' + (9 * s) + 'px sans-serif';
@@ -1663,7 +1780,6 @@ function exporterPDF() {
     y += 28 * s;
   });
   
-  // Footer
   x.fillStyle = '#9ca3af';
   x.font = (8 * s) + 'px sans-serif';
   x.textAlign = 'center';
@@ -1699,19 +1815,27 @@ function showToast(msg, type) {
 
 // ─────── EVENTS ───────
 document.addEventListener('DOMContentLoaded', function() {
-  vehicules = chargerVehicules();
-  renderAll();
+  console.log('⚡ Productivité Atelier - Démarrage');
   
-  // Header
+  // Charger les données (avec migration automatique)
+  vehicules = chargerVehicules();
+  var g = chargerGlobales();
+  
+  // Message de bienvenue avec info migration
+  if (vehicules.length > 0) {
+    console.log('📊 Véhicules chargés:', vehicules.length);
+  }
+  
+  renderAll();
+  startDisplayUpdates();
+  
   document.getElementById('btn-pdf').addEventListener('click', exporterPDF);
   document.getElementById('btn-vider').addEventListener('click', ouvrirConfirmVider);
   
-  // Bottom bar
   document.getElementById('btn-bottom-inac').addEventListener('click', toggleInactivite);
   document.getElementById('btn-bottom-fab').addEventListener('click', ouvrirNouveau);
   document.getElementById('btn-bottom-pression').addEventListener('click', togglePression);
   
-  // Modal véhicule
   document.getElementById('modal-close').addEventListener('click', fermerModal);
   document.getElementById('modal-overlay').addEventListener('click', function(e) {
     if (e.target === e.currentTarget) fermerModal();
@@ -1720,34 +1844,33 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('btn-valider').addEventListener('click', sauvegarderVehicule);
   document.getElementById('btn-supprimer').addEventListener('click', supprimerVehicule);
   
-  // Modal confirmation
   document.getElementById('confirm-cancel').addEventListener('click', fermerConfirm);
   document.getElementById('confirm-cancel-x').addEventListener('click', fermerConfirm);
   document.getElementById('confirm-ok').addEventListener('click', viderTout);
   
-  // Inputs temps
   document.addEventListener('input', function(e) {
     if (e.target.classList.contains('time-input')) {
       updateTotal();
     }
   });
   
-  // Enregistrer le Service Worker pour la PWA
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
       navigator.serviceWorker.register('./sw.js')
         .then(function(registration) {
-          console.log('Service Worker enregistré avec succès:', registration.scope);
+          console.log('✅ Service Worker enregistré');
         })
         .catch(function(error) {
-          console.log('Échec de l\'enregistrement du Service Worker:', error);
+          console.log('❌ Service Worker erreur:', error);
         });
     });
   }
+  
+  console.log('✅ Application prête');
 });
 
-// Exposer removeLine globalement
 window.removeLine = removeLine;
 </script>
 </body>
 </html>
+
