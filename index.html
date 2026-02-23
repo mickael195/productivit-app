@@ -1210,16 +1210,35 @@ function renderStats() {
 
 function renderVehicules() {
   var carousel = document.getElementById('carousel');
-  carousel.innerHTML = '';
   
   if (vehicules.length === 0) {
     carousel.innerHTML = '<div style="text-align:center; padding:60px 20px; color:var(--text-secondary);"><p style="font-size:48px; margin-bottom:16px;">🚗</p><p style="font-size:18px; font-weight:600;">La sécurité, notre priorité!</p><p style="font-size:14px; margin-top:8px;">Appuyez sur + pour commencer</p></div>';
     return;
   }
   
+  var existingCards = carousel.querySelectorAll('.vehicle-card');
+  
+  // Si le nombre de cartes a changé, reconstruire tout
+  if (existingCards.length !== vehicules.length) {
+    rebuildAllCards();
+    return;
+  }
+  
+  // Sinon, juste mettre à jour les valeurs
+  vehicules.forEach(function(v, idx) {
+    updateVehicleCard(idx);
+  });
+}
+
+// Fonction pour reconstruire toutes les cartes (appelée seulement si ajout/suppression)
+function rebuildAllCards() {
+  var carousel = document.getElementById('carousel');
+  carousel.innerHTML = '';
+  
   vehicules.forEach(function(v, idx) {
     var card = document.createElement('div');
     card.className = 'vehicle-card';
+    card.setAttribute('data-vehicle-id', idx);
     if (v.timerRunning) card.classList.add('timer-active');
     
     var diff = calculerDifference(v);
@@ -1275,6 +1294,71 @@ function renderVehicules() {
     card.appendChild(bottomDiv);
     carousel.appendChild(card);
   });
+}
+
+// Fonction pour mettre à jour UNE carte sans la recréer
+function updateVehicleCard(idx) {
+  var v = vehicules[idx];
+  var carousel = document.getElementById('carousel');
+  var cards = carousel.querySelectorAll('.vehicle-card');
+  var card = cards[idx];
+  
+  if (!card) return;
+  
+  // Mettre à jour la classe timer-active
+  if (v.timerRunning) {
+    card.classList.add('timer-active');
+  } else {
+    card.classList.remove('timer-active');
+  }
+  
+  // Calculer les valeurs actuelles
+  var currentSeconds = v.timerRunning 
+    ? getElapsedSeconds(v.startTimestamp, v.accumulatedSeconds)
+    : (v.accumulatedSeconds || 0);
+  
+  var diff = calculerDifference(v);
+  
+  // Mettre à jour le badge de différence
+  var statusBadge = card.querySelector('.vehicle-status-badge');
+  if (statusBadge) {
+    statusBadge.classList.remove('status-vert', 'status-rouge', 'status-neutre');
+    
+    var statusClass = 'status-neutre';
+    if (diff.diffSeconds !== null) {
+      if (diff.diffSeconds > 0) statusClass = 'status-vert';
+      else if (diff.diffSeconds < 0) statusClass = 'status-rouge';
+    }
+    statusBadge.classList.add(statusClass);
+    
+    var statusDiff = statusBadge.querySelector('.status-diff');
+    if (statusDiff) {
+      statusDiff.textContent = diff.label;
+    }
+  }
+  
+  // Mettre à jour le temps réel dans le détail
+  var detail = card.querySelector('.vehicle-detail');
+  if (detail) {
+    detail.innerHTML = '<span>Prévu: ' + v.tempsPrevuCentH.toFixed(2) + '</span><span>•</span><span>Réel: ' + (currentSeconds ? secondesToCentH(currentSeconds).toFixed(2) : '—') + '</span>';
+  }
+  
+  // Mettre à jour le timer display
+  var timerDisplay = card.querySelector('.timer-display');
+  if (timerDisplay) {
+    timerDisplay.textContent = formatTime(currentSeconds);
+    
+    // Mettre à jour les classes
+    timerDisplay.classList.remove('running', 'stopped');
+    if (v.timerRunning) timerDisplay.classList.add('running');
+    else if (v.timerStopped) timerDisplay.classList.add('stopped');
+  }
+  
+  // Mettre à jour le bouton play/pause
+  var playBtn = card.querySelector('.timer-btn.play');
+  if (playBtn) {
+    playBtn.innerHTML = v.timerRunning ? '⏸' : '▶';
+  }
 }
 
 function renderCompteurs() {
@@ -1399,36 +1483,9 @@ function togglePression() {
 }
 
 function updateAllDifferences() {
+  // Appeler updateVehicleCard pour chaque véhicule
   vehicules.forEach(function(v, idx) {
-    var currentSeconds = v.timerRunning 
-      ? getElapsedSeconds(v.startTimestamp, v.accumulatedSeconds)
-      : (v.accumulatedSeconds || 0);
-      
-    if (!currentSeconds || currentSeconds === 0) return;
-    
-    var carousel = document.getElementById('carousel');
-    var cards = carousel.querySelectorAll('.vehicle-card');
-    if (!cards[idx]) return;
-    
-    var card = cards[idx];
-    var diff = calculerDifference(v);
-    var statusBadge = card.querySelector('.vehicle-status-badge');
-    
-    if (statusBadge) {
-      statusBadge.classList.remove('status-vert', 'status-rouge', 'status-neutre');
-      
-      var statusClass = 'status-neutre';
-      if (diff.diffSeconds !== null) {
-        if (diff.diffSeconds > 0) statusClass = 'status-vert';
-        else if (diff.diffSeconds < 0) statusClass = 'status-rouge';
-      }
-      statusBadge.classList.add(statusClass);
-      
-      var statusDiff = statusBadge.querySelector('.status-diff');
-      if (statusDiff) {
-        statusDiff.textContent = diff.label;
-      }
-    }
+    updateVehicleCard(idx);
   });
 }
 
