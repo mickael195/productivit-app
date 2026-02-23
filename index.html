@@ -323,9 +323,45 @@ body::before {
   background: var(--bg-input);
   padding: 10px 14px;
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.vehicle-timer-row {
+  display: flex;
   align-items: center;
   gap: 12px;
-  border-top: 1px solid var(--border-subtle);
+}
+
+/* Badge d'état (EN COURS / PAUSE / TERMINÉ) */
+.vehicle-status-label {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'Orbitron', sans-serif;
+  white-space: nowrap;
+  border: 2px solid;
+  text-align: center;
+  flex-shrink: 0;
+}
+.vehicle-status-label.status-running {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--success-green);
+  color: var(--success-green);
+}
+.vehicle-status-label.status-paused {
+  background: rgba(255, 107, 53, 0.15);
+  border-color: var(--accent-orange);
+  color: var(--accent-orange);
+}
+.vehicle-status-label.status-stopped {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: var(--error-red);
+  color: var(--error-red);
 }
 
 .timer-display {
@@ -1124,7 +1160,10 @@ function formatDifference(diffSeconds) {
 }
 
 // ─────── CALCUL DIFFÉRENCE ───────
-function calculerDifference(v) {
+function calculerDifference(v, globales) {
+  // Si globales n'est pas fourni, le charger (pour compatibilité)
+  if (!globales) globales = chargerGlobales();
+  
   var currentSeconds = v.timerRunning 
     ? getElapsedSeconds(v.startTimestamp, v.accumulatedSeconds)
     : (v.accumulatedSeconds || 0);
@@ -1136,10 +1175,9 @@ function calculerDifference(v) {
   var prevuSeconds = centHToSeconds(v.tempsPrevuCentH);
   var diffBrut = prevuSeconds - currentSeconds;
   
-  var g = chargerGlobales();
-  var inacSeconds = g.inactiviteStartTimestamp 
-    ? getElapsedSeconds(g.inactiviteStartTimestamp, g.inactiviteSeconds)
-    : g.inactiviteSeconds;
+  var inacSeconds = globales.inactiviteStartTimestamp 
+    ? getElapsedSeconds(globales.inactiviteStartTimestamp, globales.inactiviteSeconds)
+    : globales.inactiviteSeconds;
   var diffSeconds = diffBrut - inacSeconds;
   
   var couleur = '#ff6b35';
@@ -1153,12 +1191,15 @@ function calculerDifference(v) {
 
 // ─────── RENDER ───────
 function renderAll() {
-  renderStats();
-  renderVehicules();
-  renderCompteurs();
+  // Charger les globales UNE SEULE FOIS pour éviter plusieurs appels à localStorage
+  var globales = chargerGlobales();
+  
+  renderStats(globales);
+  renderVehicules(globales);
+  renderCompteurs(globales);
 }
 
-function renderStats() {
+function renderStats(globales) {
   var nbVehicules = vehicules.length;
   var totalPrevuCentH = vehicules.reduce(function(sum, v) { return sum + v.tempsPrevuCentH; }, 0);
   
@@ -1186,10 +1227,9 @@ function renderStats() {
     var totalPrevuSeconds = centHToSeconds(totalPrevuCentH);
     var diffBrut = totalPrevuSeconds - totalReelSeconds;
     
-    var g = chargerGlobales();
-    var inacSeconds = g.inactiviteStartTimestamp 
-      ? getElapsedSeconds(g.inactiviteStartTimestamp, g.inactiviteSeconds)
-      : g.inactiviteSeconds;
+    var inacSeconds = globales.inactiviteStartTimestamp 
+      ? getElapsedSeconds(globales.inactiviteStartTimestamp, globales.inactiviteSeconds)
+      : globales.inactiviteSeconds;
     var bilanSeconds = diffBrut - inacSeconds;
     
     var bilanLabel = formatDifference(bilanSeconds);
@@ -1208,7 +1248,7 @@ function renderStats() {
   }
 }
 
-function renderVehicules() {
+function renderVehicules(globales) {
   var carousel = document.getElementById('carousel');
   
   if (vehicules.length === 0) {
@@ -1220,18 +1260,18 @@ function renderVehicules() {
   
   // Si le nombre de cartes a changé, reconstruire tout
   if (existingCards.length !== vehicules.length) {
-    rebuildAllCards();
+    rebuildAllCards(globales);
     return;
   }
   
   // Sinon, juste mettre à jour les valeurs
   vehicules.forEach(function(v, idx) {
-    updateVehicleCard(idx);
+    updateVehicleCard(idx, globales);
   });
 }
 
 // Fonction pour reconstruire toutes les cartes (appelée seulement si ajout/suppression)
-function rebuildAllCards() {
+function rebuildAllCards(globales) {
   var carousel = document.getElementById('carousel');
   carousel.innerHTML = '';
   
@@ -1241,7 +1281,7 @@ function rebuildAllCards() {
     card.setAttribute('data-vehicle-id', idx);
     if (v.timerRunning) card.classList.add('timer-active');
     
-    var diff = calculerDifference(v);
+    var diff = calculerDifference(v, globales);
     var statusClass = 'status-neutre';
     if (diff.diffSeconds !== null) {
       if (diff.diffSeconds > 0) statusClass = 'status-vert';
@@ -1262,13 +1302,42 @@ function rebuildAllCards() {
     
     var content = document.createElement('div');
     content.className = 'vehicle-content';
-    content.innerHTML = '<div class="vehicle-name">' + v.nom + '</div><div class="vehicle-detail"><span>Prévu: ' + v.tempsPrevuCentH.toFixed(2) + '</span><span>•</span><span>Réel: ' + (currentSeconds ? secondesToCentH(currentSeconds).toFixed(2) : '—') + '</span></div>';
+    
+    // Créer les éléments avec textContent pour sécurité
+    var nameDiv = document.createElement('div');
+    nameDiv.className = 'vehicle-name';
+    nameDiv.textContent = v.nom;
+    
+    var detailDiv = document.createElement('div');
+    detailDiv.className = 'vehicle-detail';
+    detailDiv.innerHTML = '<span>Prévu: ' + v.tempsPrevuCentH.toFixed(2) + '</span><span>•</span><span>Réel: ' + (currentSeconds ? secondesToCentH(currentSeconds).toFixed(2) : '—') + '</span>';
+    
+    content.appendChild(nameDiv);
+    content.appendChild(detailDiv);
     
     topDiv.appendChild(badge);
     topDiv.appendChild(content);
     
     var bottomDiv = document.createElement('div');
     bottomDiv.className = 'vehicle-bottom';
+    
+    // Badge d'état (EN COURS / PAUSE / TERMINÉ)
+    var statusLabel = document.createElement('div');
+    statusLabel.className = 'vehicle-status-label';
+    if (v.timerRunning) {
+      statusLabel.classList.add('status-running');
+      statusLabel.textContent = 'EN COURS';
+    } else if (v.timerStopped) {
+      statusLabel.classList.add('status-stopped');
+      statusLabel.textContent = 'TERMINÉ';
+    } else {
+      statusLabel.classList.add('status-paused');
+      statusLabel.textContent = 'PAUSE';
+    }
+    
+    // Row pour timer + boutons
+    var timerRow = document.createElement('div');
+    timerRow.className = 'vehicle-timer-row';
     
     var timerDisplay = document.createElement('div');
     timerDisplay.className = 'timer-display';
@@ -1286,9 +1355,12 @@ function rebuildAllCards() {
     stopBtn.innerHTML = '⏹';
     stopBtn.onclick = function(e) { e.stopPropagation(); stopVehicleTimer(idx); };
     
-    bottomDiv.appendChild(timerDisplay);
-    bottomDiv.appendChild(playBtn);
-    bottomDiv.appendChild(stopBtn);
+    timerRow.appendChild(timerDisplay);
+    timerRow.appendChild(playBtn);
+    timerRow.appendChild(stopBtn);
+    
+    bottomDiv.appendChild(statusLabel);
+    bottomDiv.appendChild(timerRow);
     
     card.appendChild(topDiv);
     card.appendChild(bottomDiv);
@@ -1297,7 +1369,7 @@ function rebuildAllCards() {
 }
 
 // Fonction pour mettre à jour UNE carte sans la recréer
-function updateVehicleCard(idx) {
+function updateVehicleCard(idx, globales) {
   var v = vehicules[idx];
   var carousel = document.getElementById('carousel');
   var cards = carousel.querySelectorAll('.vehicle-card');
@@ -1317,7 +1389,7 @@ function updateVehicleCard(idx) {
     ? getElapsedSeconds(v.startTimestamp, v.accumulatedSeconds)
     : (v.accumulatedSeconds || 0);
   
-  var diff = calculerDifference(v);
+  var diff = calculerDifference(v, globales);
   
   // Mettre à jour le badge de différence
   var statusBadge = card.querySelector('.vehicle-status-badge');
@@ -1337,6 +1409,12 @@ function updateVehicleCard(idx) {
     }
   }
   
+  // Mettre à jour le nom (avec textContent pour sécurité)
+  var nameDiv = card.querySelector('.vehicle-name');
+  if (nameDiv) {
+    nameDiv.textContent = v.nom;
+  }
+  
   // Mettre à jour le temps réel dans le détail
   var detail = card.querySelector('.vehicle-detail');
   if (detail) {
@@ -1354,6 +1432,22 @@ function updateVehicleCard(idx) {
     else if (v.timerStopped) timerDisplay.classList.add('stopped');
   }
   
+  // Mettre à jour le badge d'état (EN COURS / PAUSE / TERMINÉ)
+  var statusLabel = card.querySelector('.vehicle-status-label');
+  if (statusLabel) {
+    statusLabel.classList.remove('status-running', 'status-paused', 'status-stopped');
+    if (v.timerRunning) {
+      statusLabel.classList.add('status-running');
+      statusLabel.textContent = 'EN COURS';
+    } else if (v.timerStopped) {
+      statusLabel.classList.add('status-stopped');
+      statusLabel.textContent = 'TERMINÉ';
+    } else {
+      statusLabel.classList.add('status-paused');
+      statusLabel.textContent = 'PAUSE';
+    }
+  }
+  
   // Mettre à jour le bouton play/pause
   var playBtn = card.querySelector('.timer-btn.play');
   if (playBtn) {
@@ -1361,21 +1455,19 @@ function updateVehicleCard(idx) {
   }
 }
 
-function renderCompteurs() {
-  var g = chargerGlobales();
-  
-  var inacSeconds = g.inactiviteStartTimestamp 
-    ? getElapsedSeconds(g.inactiviteStartTimestamp, g.inactiviteSeconds)
-    : g.inactiviteSeconds;
-  var pressionSeconds = g.pressionStartTimestamp 
-    ? getElapsedSeconds(g.pressionStartTimestamp, g.pressionSeconds)
-    : g.pressionSeconds;
+function renderCompteurs(globales) {
+  var inacSeconds = globales.inactiviteStartTimestamp 
+    ? getElapsedSeconds(globales.inactiviteStartTimestamp, globales.inactiviteSeconds)
+    : globales.inactiviteSeconds;
+  var pressionSeconds = globales.pressionStartTimestamp 
+    ? getElapsedSeconds(globales.pressionStartTimestamp, globales.pressionSeconds)
+    : globales.pressionSeconds;
   
   document.getElementById('inac-time').textContent = formatTime(inacSeconds);
   document.getElementById('pression-time').textContent = formatTime(pressionSeconds);
   
-  if (g.dateDebut) {
-    var dateDebut = new Date(g.dateDebut);
+  if (globales.dateDebut) {
+    var dateDebut = new Date(globales.dateDebut);
     var dateStr = dateDebut.getDate() + '/' + (dateDebut.getMonth() + 1);
     document.getElementById('date-debut').textContent = dateStr;
   }
@@ -1385,8 +1477,8 @@ function renderCompteurs() {
   var timeInac = document.getElementById('inac-time');
   var timePression = document.getElementById('pression-time');
   
-  var inacRunning = g.inactiviteStartTimestamp !== null;
-  var pressionRunning = g.pressionStartTimestamp !== null;
+  var inacRunning = globales.inactiviteStartTimestamp !== null;
+  var pressionRunning = globales.pressionStartTimestamp !== null;
   
   if (inacRunning) {
     chipInac.classList.add('active-inac');
@@ -1446,6 +1538,28 @@ function stopVehicleTimer(idx) {
 }
 
 // ─────── COMPTEURS GLOBAUX (BASÉS SUR TIMESTAMPS) ───────
+
+// Fonction pour mettre en pause tous les timers actifs
+function pauseAllVehicleTimers() {
+  var anyPaused = false;
+  vehicules.forEach(function(v, idx) {
+    if (v.timerRunning) {
+      // Mettre en pause ce véhicule
+      var elapsed = getElapsedSeconds(v.startTimestamp, v.accumulatedSeconds);
+      v.accumulatedSeconds = elapsed;
+      v.startTimestamp = null;
+      v.timerRunning = false;
+      anyPaused = true;
+    }
+  });
+  
+  if (anyPaused) {
+    sauvegarderVehicules(vehicules);
+    return true; // Retourne true si au moins un véhicule a été mis en pause
+  }
+  return false;
+}
+
 function toggleInactivite() {
   var g = chargerGlobales();
   
@@ -1457,12 +1571,21 @@ function toggleInactivite() {
   } else {
     // PLAY - démarrer avec timestamp actuel
     g.inactiviteStartTimestamp = Date.now();
+    
+    // ✅ NOUVEAU : Mettre en pause tous les véhicules actifs
+    var vehiclesPaused = pauseAllVehicleTimers();
+    if (vehiclesPaused) {
+      showToast('Véhicules mis en pause', 'info');
+    }
   }
   
   sauvegarderGlobales(g);
-  renderCompteurs();
-  renderStats();
-  updateAllDifferences();
+  
+  // Recharger pour avoir l'état à jour après sauvegarde
+  g = chargerGlobales();
+  
+  // Mettre à jour tout l'affichage (y compris les badges des véhicules)
+  renderAll();
 }
 
 function togglePression() {
@@ -1476,16 +1599,27 @@ function togglePression() {
   } else {
     // PLAY
     g.pressionStartTimestamp = Date.now();
+    
+    // ✅ NOUVEAU : Mettre en pause tous les véhicules actifs
+    var vehiclesPaused = pauseAllVehicleTimers();
+    if (vehiclesPaused) {
+      showToast('Véhicules mis en pause', 'info');
+    }
   }
   
   sauvegarderGlobales(g);
-  renderCompteurs();
+  
+  // Recharger pour avoir l'état à jour après sauvegarde
+  g = chargerGlobales();
+  
+  // Mettre à jour tout l'affichage (y compris les badges des véhicules)
+  renderAll();
 }
 
-function updateAllDifferences() {
-  // Appeler updateVehicleCard pour chaque véhicule
+function updateAllDifferences(globales) {
+  // Appeler updateVehicleCard pour chaque véhicule avec globales
   vehicules.forEach(function(v, idx) {
-    updateVehicleCard(idx);
+    updateVehicleCard(idx, globales);
   });
 }
 
@@ -1658,6 +1792,14 @@ function sauvegarderVehicule() {
     var val = input.value.trim().replace(',', '.');
     if (val && !isNaN(val)) {
       var centH = parseFloat(val);
+      
+      // VALIDATION : vérifier que la valeur est valide
+      if (centH < 0 || centH > 999 || !isFinite(centH)) {
+        showToast('Valeur invalide (min: 0, max: 999)', 'error');
+        lignesTemps = []; // Vider pour forcer l'erreur
+        return;
+      }
+      
       lignesTemps.push(centH);
       total += centH;
     }
@@ -1780,7 +1922,7 @@ function exporterPDF() {
   x.fillStyle = '#e8eaed';
   x.font = 'bold ' + (11 * s) + 'px sans-serif';
   x.textAlign = 'right';
-  x.fillText('Pause: ' + formatTime(inacSeconds) + ' | Urgent: ' + formatTime(pressionSeconds), pw - 30 * s, 35 * s);
+  x.fillText('Inactivité: ' + formatTime(inacSeconds) + ' | Pression/Niveau: ' + formatTime(pressionSeconds), pw - 30 * s, 35 * s);
   
   var totalPrevuSeconds = centHToSeconds(vehicules.reduce(function(sum, v) { return sum + v.tempsPrevuCentH; }, 0));
   var totalReelSeconds = vehicules.reduce(function(sum, v) {
@@ -1816,7 +1958,7 @@ function exporterPDF() {
     x.fillStyle = idx % 2 === 0 ? '#f8fafc' : '#f1f5f9';
     x.fillRect(20 * s, y, pw - 40 * s, 26 * s);
     
-    var diff = calculerDifference(v);
+    var diff = calculerDifference(v, g);
     x.fillStyle = diff.couleur;
     x.fillRect(20 * s, y, 4 * s, 26 * s);
     
