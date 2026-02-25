@@ -92,6 +92,17 @@ body::before {
 @keyframes pulseGreen { 0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.4)} 50%{box-shadow:0 0 12px 4px rgba(16,185,129,.15)} }
 @keyframes slideInLeft { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
 @keyframes slideOutRight { to{opacity:0;transform:translateX(30px)} }
+@keyframes alertPulse { 
+  0%, 100% { 
+    opacity: 1; 
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7), 0 4px 20px rgba(239, 68, 68, 0.3); 
+  } 
+  50% { 
+    opacity: 0.9; 
+    box-shadow: 0 0 20px 8px rgba(239, 68, 68, 0.4), 0 4px 30px rgba(239, 68, 68, 0.5); 
+  } 
+}
+@keyframes slideDown { from{transform:translateY(-100%)} to{transform:translateY(0)} }
 
 /* ══════════════════ HEADER ══════════════════ */
 #app-header {
@@ -134,6 +145,81 @@ body::before {
   font-size: 20px; transition: all .2s; border: 1px solid var(--border-subtle);
 }
 .header-btn:active { transform: scale(.92); background: var(--steel-gray); }
+
+/* ══════════════════ BANNIÈRE D'ALERTE ══════════════════ */
+#alert-banner {
+  position: fixed;
+  top: calc(var(--header-h) + var(--safe-top));
+  left: 0;
+  right: 0;
+  z-index: 99;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  padding: 16px 20px;
+  display: none;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 30px rgba(239, 68, 68, 0.6);
+  animation: slideDown 0.4s ease-out, alertPulse 2s ease-in-out infinite;
+  border-bottom: 3px solid #991b1b;
+}
+
+#alert-banner.visible {
+  display: flex;
+}
+
+.alert-icon {
+  font-size: 28px;
+  animation: blink 1.5s ease-in-out infinite;
+}
+
+.alert-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.alert-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 16px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.alert-subtitle {
+  font-size: 13px;
+  opacity: 0.95;
+  font-weight: 600;
+}
+
+.alert-stop-btn {
+  padding: 12px 24px;
+  background: white;
+  color: #ef4444;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s;
+  font-family: 'Orbitron', sans-serif;
+  white-space: nowrap;
+}
+
+.alert-stop-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Ajuster le padding du body quand la bannière est visible */
+body.alert-active {
+  padding-top: calc(var(--header-h) + var(--safe-top) + 72px);
+}
 
 /* ══════════════════ STATS GLOBALES ══════════════════ */
 #stats-globales { 
@@ -862,6 +948,16 @@ body::before {
   </div>
 </header>
 
+<!-- ══════════════════ BANNIÈRE D'ALERTE ══════════════════ -->
+<div id="alert-banner">
+  <div class="alert-icon">⚠️</div>
+  <div class="alert-content">
+    <div class="alert-title" id="alert-title">INACTIVITÉ EN COURS</div>
+    <div class="alert-subtitle">N'oubliez pas de désactiver avant de continuer !</div>
+  </div>
+  <button class="alert-stop-btn" id="alert-stop-btn">ARRÊTER</button>
+</div>
+
 <!-- ══════════════════ STATS GLOBALES ══════════════════ -->
 <div id="stats-globales">
   <div class="stat-chip">
@@ -953,6 +1049,17 @@ body::before {
         <div class="total-label">Temps Prévu Total</div>
         <div class="total-value" id="total-prevu">0.00h</div>
       </div>
+      
+      <!-- Bouton pour éditer le temps réel -->
+      <div id="btn-edit-time-container" style="display:none; margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--border-subtle);">
+        <button id="btn-open-edit-time" class="modal-btn" style="width: 100%; background: linear-gradient(135deg, var(--accent-orange), #ffa500); color: white; border: none; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px; padding: 14px;">
+          <span style="font-size: 20px;">✏️</span>
+          <span>Modifier le temps réel travaillé</span>
+        </button>
+        <p style="color: var(--text-secondary); font-size: 13px; text-align: center; margin-top: 8px; opacity: 0.8;">
+          Pour corriger les oublis de pause
+        </p>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-danger" id="btn-supprimer" style="display:none;">Supprimer</button>
@@ -980,6 +1087,81 @@ body::before {
   </div>
 </div>
 
+<!-- ══════════════════ MODAL CONFIRMATION TERMINER VÉHICULE ══════════════════ -->
+<div class="modal-overlay" id="confirm-terminer-overlay" aria-hidden="true">
+  <div class="modal-content" style="max-width: 420px;">
+    <div class="modal-header">
+      <h2 class="modal-title">⏹ Terminer le véhicule</h2>
+      <button class="modal-close" id="confirm-terminer-cancel-x" aria-label="Fermer">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="color: var(--text-secondary); line-height: 1.6; font-size: 15px;">
+        Voulez-vous vraiment <strong style="color: var(--error-red);">terminer</strong> ce véhicule ?
+      </p>
+      <p id="confirm-terminer-nom" style="color: var(--accent-orange); font-weight: 700; font-size: 18px; margin-top: 12px; text-align: center; font-family: 'Orbitron', sans-serif;">
+        <!-- Nom du véhicule sera inséré ici -->
+      </p>
+      <p style="color: var(--text-secondary); font-size: 13px; margin-top: 12px; opacity: 0.8;">
+        Le timer sera arrêté et marqué comme terminé.
+      </p>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-danger" id="confirm-terminer-cancel">Annuler</button>
+      <button class="modal-btn modal-btn-primary" id="confirm-terminer-ok">Terminer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MODAL ÉDITION TEMPS RÉEL ══════════════════ -->
+<div class="modal-overlay" id="edit-time-overlay" aria-hidden="true">
+  <div class="modal-content" style="max-width: 480px;">
+    <div class="modal-header">
+      <h2 class="modal-title">✏️ Modifier le temps</h2>
+      <button class="modal-close" id="edit-time-close" aria-label="Fermer">×</button>
+    </div>
+    <div class="modal-body">
+      <!-- Info véhicule -->
+      <div style="background: var(--bg-input); padding: 12px; border-radius: 10px; margin-bottom: 20px;">
+        <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 4px;">Véhicule</p>
+        <p id="edit-time-nom" style="color: var(--accent-orange); font-weight: 700; font-size: 18px; font-family: 'Orbitron', sans-serif;"></p>
+        <p style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;">Temps actuel</p>
+        <p id="edit-time-current" style="color: var(--text-primary); font-weight: 700; font-size: 24px; font-family: 'Orbitron', sans-serif;"></p>
+      </div>
+
+      <!-- Section RETIRER -->
+      <div style="background: rgba(239, 68, 68, 0.1); border: 2px solid var(--error-red); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+        <h3 style="color: var(--error-red); font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 20px;">⊖</span> Retirer du temps
+        </h3>
+        <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
+          <input type="number" id="retirer-heures" min="0" max="23" value="0" placeholder="0" style="width: 80px; padding: 10px; font-size: 18px; text-align: center; border-radius: 8px; border: 2px solid var(--error-red); background: var(--bg-dark); color: var(--text-primary); font-family: 'Orbitron', sans-serif; font-weight: 700;">
+          <span style="color: var(--text-primary); font-weight: 600;">h</span>
+          <input type="number" id="retirer-minutes" min="0" max="59" value="0" placeholder="0" style="width: 80px; padding: 10px; font-size: 18px; text-align: center; border-radius: 8px; border: 2px solid var(--error-red); background: var(--bg-dark); color: var(--text-primary); font-family: 'Orbitron', sans-serif; font-weight: 700;">
+          <span style="color: var(--text-primary); font-weight: 600;">min</span>
+        </div>
+        <button id="btn-retirer-temps" class="modal-btn" style="width: 100%; background: var(--error-red); color: white; border: none;">Retirer</button>
+      </div>
+
+      <!-- Section AJOUTER -->
+      <div style="background: rgba(16, 185, 129, 0.1); border: 2px solid var(--success-green); border-radius: 12px; padding: 16px;">
+        <h3 style="color: var(--success-green); font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 20px;">⊕</span> Ajouter du temps
+        </h3>
+        <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
+          <input type="number" id="ajouter-heures" min="0" max="23" value="0" placeholder="0" style="width: 80px; padding: 10px; font-size: 18px; text-align: center; border-radius: 8px; border: 2px solid var(--success-green); background: var(--bg-dark); color: var(--text-primary); font-family: 'Orbitron', sans-serif; font-weight: 700;">
+          <span style="color: var(--text-primary); font-weight: 600;">h</span>
+          <input type="number" id="ajouter-minutes" min="0" max="59" value="0" placeholder="0" style="width: 80px; padding: 10px; font-size: 18px; text-align: center; border-radius: 8px; border: 2px solid var(--success-green); background: var(--bg-dark); color: var(--text-primary); font-family: 'Orbitron', sans-serif; font-weight: 700;">
+          <span style="color: var(--text-primary); font-weight: 600;">min</span>
+        </div>
+        <button id="btn-ajouter-temps" class="modal-btn" style="width: 100%; background: var(--success-green); color: white; border: none;">Ajouter</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-danger" id="btn-fermer-edit-time">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════ TOAST CONTAINER ══════════════════ -->
 <div id="toast-container"></div>
 
@@ -992,11 +1174,130 @@ body::before {
 // ─────── VARIABLES GLOBALES ───────
 var vehicules = [];
 var vehiculeEditIndex = -1;
+var vehiculeTerminerIndex = -1; // Index du véhicule à terminer (pour confirmation)
+var vehiculeEditTimeIndex = -1; // Index du véhicule pour édition du temps
 var lineCounter = 1;
 var MAX_LINES = 15;
 
 // Timers d'affichage uniquement (mise à jour visuelle toutes les secondes)
 var displayUpdateInterval = null;
+
+// ─────── GESTION BANNIÈRE D'ALERTE ───────
+
+function updateAlertBanner() {
+  var g = chargerGlobales();
+  var banner = document.getElementById('alert-banner');
+  var title = document.getElementById('alert-title');
+  var body = document.body;
+  
+  var inactiviteActive = g.inactiviteStartTimestamp !== null;
+  var pressionActive = g.pressionStartTimestamp !== null;
+  
+  if (inactiviteActive || pressionActive) {
+    // Afficher la bannière
+    banner.classList.add('visible');
+    body.classList.add('alert-active');
+    
+    // Mettre à jour le titre selon ce qui est actif
+    if (inactiviteActive) {
+      title.textContent = '⏸️ INACTIVITÉ EN COURS';
+    } else if (pressionActive) {
+      title.textContent = '🔧 PRESSION/NIVEAU EN COURS';
+    }
+  } else {
+    // Masquer la bannière
+    banner.classList.remove('visible');
+    body.classList.remove('alert-active');
+  }
+}
+
+// ─────── GESTION EXCLUSIVITÉ (UNE SEULE TÂCHE À LA FOIS) ───────
+
+function getActiveTask() {
+  // Retourne ce qui est actuellement actif
+  var g = chargerGlobales();
+  
+  // Vérifier si un véhicule est en cours
+  var vehiculeEnCours = vehicules.find(function(v) { return v.timerRunning; });
+  if (vehiculeEnCours) {
+    return { type: 'vehicule', nom: vehiculeEnCours.nom };
+  }
+  
+  // Vérifier Inactivité
+  if (g.inactiviteStartTimestamp) {
+    return { type: 'inactivite', nom: 'Inactivité' };
+  }
+  
+  // Vérifier Pression
+  if (g.pressionStartTimestamp) {
+    return { type: 'pression', nom: 'Pression/Niveau' };
+  }
+  
+  return null; // Rien n'est actif
+}
+
+function updateButtonsState() {
+  var activeTask = getActiveTask();
+  
+  // Boutons du bas
+  var btnInac = document.getElementById('btn-bottom-inac');
+  var btnPression = document.getElementById('btn-bottom-pression');
+  var btnFab = document.getElementById('btn-bottom-fab');
+  
+  if (!activeTask) {
+    // Rien n'est actif → Tout activer
+    btnInac.disabled = false;
+    btnPression.disabled = false;
+    btnFab.disabled = false;
+    btnInac.style.opacity = '1';
+    btnPression.style.opacity = '1';
+    btnFab.style.opacity = '1';
+    return;
+  }
+  
+  // Quelque chose est actif → Désactiver les autres
+  if (activeTask.type === 'vehicule') {
+    // Véhicule actif → Bloquer Inac et Pression
+    btnInac.disabled = true;
+    btnPression.disabled = true;
+    btnFab.disabled = false;
+    btnInac.style.opacity = '0.3';
+    btnPression.style.opacity = '0.3';
+    btnFab.style.opacity = '1';
+  } else if (activeTask.type === 'inactivite') {
+    // Inactivité active → Bloquer véhicules et Pression
+    btnInac.disabled = false;
+    btnPression.disabled = true;
+    btnFab.disabled = true;
+    btnInac.style.opacity = '1';
+    btnPression.style.opacity = '0.3';
+    btnFab.style.opacity = '0.3';
+  } else if (activeTask.type === 'pression') {
+    // Pression active → Bloquer véhicules et Inac
+    btnInac.disabled = true;
+    btnPression.disabled = false;
+    btnFab.disabled = true;
+    btnInac.style.opacity = '0.3';
+    btnPression.style.opacity = '1';
+    btnFab.style.opacity = '0.3';
+  }
+  
+  // Désactiver les boutons play des véhicules si Inac ou Pression actif
+  if (activeTask.type === 'inactivite' || activeTask.type === 'pression') {
+    var playButtons = document.querySelectorAll('.timer-btn.play');
+    playButtons.forEach(function(btn) {
+      btn.disabled = true;
+      btn.style.opacity = '0.3';
+    });
+  } else {
+    var playButtons = document.querySelectorAll('.timer-btn.play');
+    playButtons.forEach(function(btn) {
+      // Réactiver seulement si le véhicule n'est pas déjà en cours
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    });
+  }
+}
 
 // ─────── UTILITAIRES TIMESTAMP ───────
 
@@ -1252,7 +1553,7 @@ function renderVehicules(globales) {
   var carousel = document.getElementById('carousel');
   
   if (vehicules.length === 0) {
-    carousel.innerHTML = '<div style="text-align:center; padding:60px 20px; color:var(--text-secondary);"><p style="font-size:48px; margin-bottom:16px;">🚗</p><p style="font-size:18px; font-weight:600;">La sécurité, notre priorité!</p><p style="font-size:14px; margin-top:8px;">Appuyez sur + pour commencer</p></div>';
+    carousel.innerHTML = '<div style="max-width:500px; margin:40px auto; padding:24px; background:rgba(255,107,53,0.15); border:2px solid var(--accent-orange); border-radius:16px; color:var(--text-primary);"><div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;"><span style="font-size:32px;">⚠️</span><h3 style="font-size:18px; font-weight:900; color:var(--accent-orange); margin:0; font-family:\'Orbitron\',sans-serif;">RAPPEL IMPORTANT</h3></div><p style="font-size:15px; line-height:1.6; margin-bottom:14px; color:var(--text-primary);">Cette application calcule automatiquement vos <strong>gains</strong> et <strong>pertes</strong> de temps.</p><p style="font-size:15px; line-height:1.6; margin-bottom:14px; color:var(--text-primary); display:flex; gap:8px;"><span style="font-size:20px; color:var(--accent-orange); flex-shrink:0;">⚠️</span><span>Si vous entrez de <strong style="color:var(--error-red);">mauvais temps atelier</strong>, tous vos résultats seront <strong style="color:var(--error-red);">faussés</strong>.</span></p><p style="font-size:15px; line-height:1.6; margin-bottom:20px; color:var(--text-primary); display:flex; gap:8px;"><span style="font-size:18px; color:var(--success-green); flex-shrink:0;">✓</span><span><strong>Vérifiez toujours</strong> vos valeurs avant de valider !</span></p><div style="text-align:center; padding-top:16px; border-top:1px solid rgba(255,107,53,0.3);"><p style="font-size:48px; margin-bottom:12px;">🚗</p><p style="font-size:16px; font-weight:600; color:var(--text-secondary);">Appuyez sur <strong style="color:var(--accent-orange);">+</strong> pour commencer</p></div></div>';
     return;
   }
   
@@ -1512,7 +1813,15 @@ function toggleVehicleTimer(idx) {
     v.startTimestamp = null;
     v.timerRunning = false;
   } else {
-    // PLAY - démarrer avec timestamp actuel
+    // PLAY - Vérifier qu'aucune autre tâche n'est active
+    var activeTask = getActiveTask();
+    if (activeTask) {
+      // Quelque chose est déjà actif !
+      showToast('🚫 ' + activeTask.nom + ' est déjà en cours !', 'error');
+      return; // Bloquer le démarrage
+    }
+    
+    // OK, rien n'est actif → Démarrer
     v.startTimestamp = Date.now();
     v.timerRunning = true;
     v.timerStopped = false;
@@ -1520,9 +1829,16 @@ function toggleVehicleTimer(idx) {
   
   sauvegarderVehicules(vehicules);
   renderAll();
+  updateButtonsState(); // Mettre à jour l'état des boutons
 }
 
 function stopVehicleTimer(idx) {
+  // Ouvrir le modal de confirmation au lieu de terminer directement
+  ouvrirConfirmTerminer(idx);
+}
+
+function stopVehicleTimerConfirmed(idx) {
+  // Cette fonction est appelée après confirmation dans le modal
   var v = vehicules[idx];
   
   if (v.timerRunning) {
@@ -1535,6 +1851,8 @@ function stopVehicleTimer(idx) {
   v.timerStopped = true;
   sauvegarderVehicules(vehicules);
   renderAll();
+  updateButtonsState(); // Mettre à jour l'état des boutons
+  showToast('✅ Véhicule terminé', 'success');
 }
 
 // ─────── COMPTEURS GLOBAUX (BASÉS SUR TIMESTAMPS) ───────
@@ -1569,10 +1887,18 @@ function toggleInactivite() {
     g.inactiviteSeconds = elapsed;
     g.inactiviteStartTimestamp = null;
   } else {
-    // PLAY - démarrer avec timestamp actuel
+    // PLAY - Vérifier qu'aucune autre tâche n'est active
+    var activeTask = getActiveTask();
+    if (activeTask) {
+      // Quelque chose est déjà actif !
+      showToast('🚫 ' + activeTask.nom + ' est déjà en cours !', 'error');
+      return; // Bloquer le démarrage
+    }
+    
+    // OK, rien n'est actif → Démarrer
     g.inactiviteStartTimestamp = Date.now();
     
-    // ✅ NOUVEAU : Mettre en pause tous les véhicules actifs
+    // ✅ Mettre en pause tous les véhicules actifs (normalement aucun grâce à l'exclusivité)
     var vehiclesPaused = pauseAllVehicleTimers();
     if (vehiclesPaused) {
       showToast('Véhicules mis en pause', 'info');
@@ -1584,8 +1910,12 @@ function toggleInactivite() {
   // Recharger pour avoir l'état à jour après sauvegarde
   g = chargerGlobales();
   
+  // Mettre à jour la bannière d'alerte
+  updateAlertBanner();
+  
   // Mettre à jour tout l'affichage (y compris les badges des véhicules)
   renderAll();
+  updateButtonsState(); // Mettre à jour l'état des boutons
 }
 
 function togglePression() {
@@ -1597,10 +1927,18 @@ function togglePression() {
     g.pressionSeconds = elapsed;
     g.pressionStartTimestamp = null;
   } else {
-    // PLAY
+    // PLAY - Vérifier qu'aucune autre tâche n'est active
+    var activeTask = getActiveTask();
+    if (activeTask) {
+      // Quelque chose est déjà actif !
+      showToast('🚫 ' + activeTask.nom + ' est déjà en cours !', 'error');
+      return; // Bloquer le démarrage
+    }
+    
+    // OK, rien n'est actif → Démarrer
     g.pressionStartTimestamp = Date.now();
     
-    // ✅ NOUVEAU : Mettre en pause tous les véhicules actifs
+    // ✅ Mettre en pause tous les véhicules actifs (normalement aucun grâce à l'exclusivité)
     var vehiclesPaused = pauseAllVehicleTimers();
     if (vehiclesPaused) {
       showToast('Véhicules mis en pause', 'info');
@@ -1612,8 +1950,12 @@ function togglePression() {
   // Recharger pour avoir l'état à jour après sauvegarde
   g = chargerGlobales();
   
+  // Mettre à jour la bannière d'alerte
+  updateAlertBanner();
+  
   // Mettre à jour tout l'affichage (y compris les badges des véhicules)
   renderAll();
+  updateButtonsState(); // Mettre à jour l'état des boutons
 }
 
 function updateAllDifferences(globales) {
@@ -1661,6 +2003,12 @@ document.addEventListener('visibilitychange', function() {
     
     // Mise à jour immédiate
     renderAll();
+    
+    // Mettre à jour la bannière d'alerte
+    updateAlertBanner();
+    
+    // Mettre à jour l'état des boutons (exclusivité)
+    updateButtonsState();
   }
 });
 
@@ -1669,6 +2017,10 @@ function ouvrirNouveau() {
   vehiculeEditIndex = -1;
   document.getElementById('modal-title').textContent = 'Nouveau Véhicule';
   document.getElementById('btn-supprimer').style.display = 'none';
+  
+  // Cacher le bouton d'édition du temps réel en mode création
+  document.getElementById('btn-edit-time-container').style.display = 'none';
+  
   document.getElementById('input-nom').value = '';
   
   var container = document.getElementById('inputs-container');
@@ -1685,6 +2037,10 @@ function ouvrirEditer(idx) {
   var v = vehicules[idx];
   document.getElementById('modal-title').textContent = 'Modifier Véhicule';
   document.getElementById('btn-supprimer').style.display = 'block';
+  
+  // Afficher le bouton d'édition du temps réel
+  document.getElementById('btn-edit-time-container').style.display = 'block';
+  
   document.getElementById('input-nom').value = v.nom;
   
   var container = document.getElementById('inputs-container');
@@ -1884,6 +2240,170 @@ function viderTout() {
   showToast('Données effacées !', 'info');
 }
 
+// ─────── CONFIRMATION TERMINER VÉHICULE ───────
+
+function ouvrirConfirmTerminer(idx) {
+  vehiculeTerminerIndex = idx;
+  var v = vehicules[idx];
+  
+  // Mettre à jour le nom du véhicule dans le modal
+  document.getElementById('confirm-terminer-nom').textContent = v.nom;
+  
+  // Afficher le modal
+  document.getElementById('confirm-terminer-overlay').classList.add('active');
+}
+
+function fermerConfirmTerminer() {
+  document.getElementById('confirm-terminer-overlay').classList.remove('active');
+  vehiculeTerminerIndex = -1;
+}
+
+function confirmerTerminerVehicule() {
+  if (vehiculeTerminerIndex === -1) return;
+  
+  // Appeler la fonction de terminaison réelle
+  stopVehicleTimerConfirmed(vehiculeTerminerIndex);
+  
+  // Fermer le modal
+  fermerConfirmTerminer();
+}
+
+// ─────── ÉDITION DU TEMPS RÉEL ───────
+
+function ouvrirEditTime(idx) {
+  vehiculeEditTimeIndex = idx;
+  var v = vehicules[idx];
+  
+  // Calculer le temps actuel
+  var currentSeconds = v.timerRunning 
+    ? getElapsedSeconds(v.startTimestamp, v.accumulatedSeconds)
+    : (v.accumulatedSeconds || 0);
+  
+  // Afficher le nom du véhicule
+  document.getElementById('edit-time-nom').textContent = v.nom;
+  
+  // Afficher le temps actuel
+  document.getElementById('edit-time-current').textContent = formatTime(currentSeconds);
+  
+  // Réinitialiser les inputs
+  document.getElementById('retirer-heures').value = 0;
+  document.getElementById('retirer-minutes').value = 0;
+  document.getElementById('ajouter-heures').value = 0;
+  document.getElementById('ajouter-minutes').value = 0;
+  
+  // Afficher le modal
+  document.getElementById('edit-time-overlay').classList.add('active');
+}
+
+function fermerEditTime() {
+  document.getElementById('edit-time-overlay').classList.remove('active');
+  vehiculeEditTimeIndex = -1;
+}
+
+function retirerTemps() {
+  if (vehiculeEditTimeIndex === -1) return;
+  
+  var v = vehicules[vehiculeEditTimeIndex];
+  var heures = parseInt(document.getElementById('retirer-heures').value) || 0;
+  var minutes = parseInt(document.getElementById('retirer-minutes').value) || 0;
+  
+  // Validation
+  if (heures === 0 && minutes === 0) {
+    showToast('⚠️ Entrez une durée à retirer', 'error');
+    return;
+  }
+  
+  // Convertir en secondes
+  var secondsToRemove = (heures * 3600) + (minutes * 60);
+  
+  // Calculer le temps actuel
+  var currentSeconds = v.timerRunning 
+    ? getElapsedSeconds(v.startTimestamp, v.accumulatedSeconds)
+    : (v.accumulatedSeconds || 0);
+  
+  // Calculer le nouveau temps
+  var newSeconds = currentSeconds - secondsToRemove;
+  
+  // Validation : ne pas aller en négatif
+  if (newSeconds < 0) {
+    showToast('⚠️ Impossible : temps négatif !', 'error');
+    return;
+  }
+  
+  // Appliquer le changement
+  if (v.timerRunning) {
+    // Si timer EN COURS, ajuster le startTimestamp
+    v.accumulatedSeconds = newSeconds;
+    v.startTimestamp = Date.now();
+  } else {
+    // Si timer en PAUSE/TERMINÉ, ajuster directement accumulatedSeconds
+    v.accumulatedSeconds = newSeconds;
+  }
+  
+  // Sauvegarder et rafraîchir
+  sauvegarderVehicules(vehicules);
+  renderAll();
+  
+  // Mettre à jour l'affichage dans le modal
+  document.getElementById('edit-time-current').textContent = formatTime(newSeconds);
+  
+  // Réinitialiser les inputs
+  document.getElementById('retirer-heures').value = 0;
+  document.getElementById('retirer-minutes').value = 0;
+  
+  // Toast de confirmation
+  showToast('✅ ' + heures + 'h ' + minutes + 'min retirées', 'success');
+}
+
+function ajouterTemps() {
+  if (vehiculeEditTimeIndex === -1) return;
+  
+  var v = vehicules[vehiculeEditTimeIndex];
+  var heures = parseInt(document.getElementById('ajouter-heures').value) || 0;
+  var minutes = parseInt(document.getElementById('ajouter-minutes').value) || 0;
+  
+  // Validation
+  if (heures === 0 && minutes === 0) {
+    showToast('⚠️ Entrez une durée à ajouter', 'error');
+    return;
+  }
+  
+  // Convertir en secondes
+  var secondsToAdd = (heures * 3600) + (minutes * 60);
+  
+  // Calculer le temps actuel
+  var currentSeconds = v.timerRunning 
+    ? getElapsedSeconds(v.startTimestamp, v.accumulatedSeconds)
+    : (v.accumulatedSeconds || 0);
+  
+  // Calculer le nouveau temps
+  var newSeconds = currentSeconds + secondsToAdd;
+  
+  // Appliquer le changement
+  if (v.timerRunning) {
+    // Si timer EN COURS, ajuster le startTimestamp
+    v.accumulatedSeconds = newSeconds;
+    v.startTimestamp = Date.now();
+  } else {
+    // Si timer en PAUSE/TERMINÉ, ajuster directement accumulatedSeconds
+    v.accumulatedSeconds = newSeconds;
+  }
+  
+  // Sauvegarder et rafraîchir
+  sauvegarderVehicules(vehicules);
+  renderAll();
+  
+  // Mettre à jour l'affichage dans le modal
+  document.getElementById('edit-time-current').textContent = formatTime(newSeconds);
+  
+  // Réinitialiser les inputs
+  document.getElementById('ajouter-heures').value = 0;
+  document.getElementById('ajouter-minutes').value = 0;
+  
+  // Toast de confirmation
+  showToast('✅ ' + heures + 'h ' + minutes + 'min ajoutées', 'success');
+}
+
 // ─────── EXPORT PNG ───────
 function exporterPDF() {
   if (vehicules.length === 0) {
@@ -2028,6 +2548,22 @@ document.addEventListener('DOMContentLoaded', function() {
   renderAll();
   startDisplayUpdates();
   
+  // Initialiser la bannière d'alerte
+  updateAlertBanner();
+  
+  // Initialiser l'état des boutons (exclusivité)
+  updateButtonsState();
+  
+  // Event listener pour le bouton ARRÊTER de la bannière
+  document.getElementById('alert-stop-btn').addEventListener('click', function() {
+    var g = chargerGlobales();
+    if (g.inactiviteStartTimestamp) {
+      toggleInactivite();
+    } else if (g.pressionStartTimestamp) {
+      togglePression();
+    }
+  });
+  
   document.getElementById('btn-pdf').addEventListener('click', exporterPDF);
   document.getElementById('btn-vider').addEventListener('click', ouvrirConfirmVider);
   
@@ -2046,6 +2582,28 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('confirm-cancel').addEventListener('click', fermerConfirm);
   document.getElementById('confirm-cancel-x').addEventListener('click', fermerConfirm);
   document.getElementById('confirm-ok').addEventListener('click', viderTout);
+  
+  // Event listeners pour le modal de confirmation de terminaison
+  document.getElementById('confirm-terminer-cancel').addEventListener('click', fermerConfirmTerminer);
+  document.getElementById('confirm-terminer-cancel-x').addEventListener('click', fermerConfirmTerminer);
+  document.getElementById('confirm-terminer-ok').addEventListener('click', confirmerTerminerVehicule);
+  
+  // Event listeners pour le modal d'édition du temps
+  document.getElementById('edit-time-close').addEventListener('click', fermerEditTime);
+  document.getElementById('btn-fermer-edit-time').addEventListener('click', fermerEditTime);
+  document.getElementById('btn-retirer-temps').addEventListener('click', retirerTemps);
+  document.getElementById('btn-ajouter-temps').addEventListener('click', ajouterTemps);
+  
+  // Event listener pour ouvrir le modal d'édition du temps depuis le modal véhicule
+  document.getElementById('btn-open-edit-time').addEventListener('click', function() {
+    if (vehiculeEditIndex === -1) return;
+    
+    // Fermer le modal du véhicule
+    fermerModal();
+    
+    // Ouvrir le modal d'édition du temps
+    ouvrirEditTime(vehiculeEditIndex);
+  });
   
   document.addEventListener('input', function(e) {
     if (e.target.classList.contains('time-input')) {
@@ -2072,4 +2630,5 @@ window.removeLine = removeLine;
 </script>
 </body>
 </html>
+
 
