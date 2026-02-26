@@ -1,20 +1,22 @@
-# 📱 Productivité Atelier - PWA
+# ⚡ Productivité Atelier - PWA
 
 Application de gestion de productivité pour atelier automobile.
+
+---
 
 ## 🚀 Installation sur téléphone (Android/iOS)
 
 ### Option 1 : Installation directe (PWA)
 
 #### Sur Android (Chrome/Edge) :
-1. Ouvrez `index.html` dans Chrome
-2. Appuyez sur les **3 points** en haut à droite
+1. Hébergez l'app (voir Option 2) ou ouvrez le fichier HTML localement
+2. Appuyez sur les 3 points en haut à droite
 3. Sélectionnez **"Ajouter à l'écran d'accueil"** ou **"Installer l'application"**
 4. L'icône ⚡ apparaîtra sur votre écran d'accueil
 5. L'app fonctionne maintenant hors ligne !
 
 #### Sur iOS (Safari) :
-1. Ouvrez `index.html` dans Safari
+1. Ouvrez l'URL dans Safari
 2. Appuyez sur le bouton **Partager** (carré avec flèche)
 3. Faites défiler et sélectionnez **"Sur l'écran d'accueil"**
 4. Appuyez sur **"Ajouter"**
@@ -22,90 +24,98 @@ Application de gestion de productivité pour atelier automobile.
 
 ---
 
-### Option 2 : Créer une vraie APK Android
+### Option 2 : Hébergement & APK Android
 
-Pour créer un fichier .apk installable :
-
-#### Méthode A - En ligne (gratuit, facile) :
-1. Allez sur **https://www.pwabuilder.com/**
-2. Cliquez sur **"Start"**
-3. Hébergez vos 3 fichiers quelque part (GitHub Pages, Netlify, etc.)
-4. Entrez l'URL de votre site
-5. Cliquez sur **"Package for Stores"**
-6. Sélectionnez **"Android"**
-7. Téléchargez le fichier .apk généré
-8. Transférez-le sur votre téléphone et installez-le
-
-#### Méthode B - Hébergement gratuit rapide :
-1. Allez sur **https://app.netlify.com/drop**
+#### Méthode A — Hébergement gratuit rapide (Netlify Drop) :
+1. Allez sur [https://app.netlify.com/drop](https://app.netlify.com/drop)
 2. Glissez-déposez les 3 fichiers :
    - `productivite-orange.html`
    - `manifest.json`
    - `sw.js`
-3. Vous obtenez une URL (ex: https://random-name.netlify.app)
-4. Ouvrez cette URL sur votre téléphone
-5. Installez l'app avec les instructions de l'Option 1
+3. Obtenez une URL (ex: `https://random-name.netlify.app`)
+4. Ouvrez cette URL sur votre téléphone et installez l'app (Option 1)
+
+#### Méthode B — Créer une vraie APK Android (PWABuilder) :
+1. Allez sur [https://www.pwabuilder.com/](https://www.pwabuilder.com/)
+2. Hébergez d'abord vos fichiers (Netlify, GitHub Pages…)
+3. Entrez l'URL de votre site
+4. Cliquez sur **"Package for Stores"** → **"Android"**
+5. Téléchargez le `.apk`, transférez-le sur votre téléphone et installez-le
 
 ---
 
 ## 📦 Fichiers nécessaires
 
-Pour que la PWA fonctionne, vous avez besoin de ces 3 fichiers dans le même dossier :
+Les 3 fichiers doivent être dans le même dossier :
 
-1. **productivite-orange.html** - L'application principale
-2. **manifest.json** - Configuration de la PWA (nom, icône, couleurs)
-3. **sw.js** - Service Worker (permet le mode hors ligne)
+| Fichier | Rôle |
+|---|---|
+| `productivite-orange.html` | Application principale |
+| `manifest.json` | Configuration PWA (nom, icône, couleurs) |
+| `sw.js` | Service Worker (mode hors ligne) |
 
 ---
 
 ## ✨ Fonctionnalités
 
-✅ **Fonctionne hors ligne** - Pas besoin d'internet après installation
-✅ **Stockage local** - Toutes les données sont sauvegardées dans le navigateur
-✅ **Installation facile** - Comme une vraie app native
-✅ **Design orange industriel** - Interface moderne et professionnelle
-✅ **Timers en temps réel** - Pour chaque véhicule
-✅ **Bilan global** - Temps gagné/perdu sur tous les véhicules
-✅ **Export PNG** - Générer un rapport de fin de journée
+- ✅ **Fonctionne hors ligne** — Pas besoin d'internet après installation
+- ✅ **Stockage local** — Toutes les données sauvegardées dans le navigateur
+- ✅ **Thème clair / sombre** — Bascule en un tap depuis le header (☀️ / 🌙)
+- ✅ **Installation facile** — Comme une vraie app native
+- ✅ **Timers en temps réel** — Pour chaque véhicule (▶ / ⏸ / ⏹)
+- ✅ **Terminer un véhicule** — Confirmation avant arrêt définitif du timer
+- ✅ **Bilan global** — Temps gagné/perdu sur tous les véhicules (déduit l'inactivité)
+- ✅ **Bannière d'alerte** — Rappel visuel si inactivité ou pression est en cours
+- ✅ **Export PNG** — Rapport de bilan avec tableau des véhicules
+- ✅ **Multi-lignes de temps** — Jusqu'à 15 lignes de temps prévu par véhicule
+- ✅ **Modification du temps réel** — Ajouter ou retirer du temps (correction d'oubli de pause)
+- ✅ **Blocage des actions simultanées** — Impossible de lancer deux tâches en même temps
 
 ---
 
 ## 🔧 Système de temps
 
-**Saisie** : Centièmes d'heure (0.50 = 30 min, 1.90 = 1h 54min)
-**Affichage différence** : Heures + minutes (+1h 30min, -45min)
-**Timers** : Format HH:MM:SS
+- **Saisie** : Centièmes d'heure (`0.50` = 30 min, `1.90` = 1h 54min)
+- **Multi-lignes** : Plusieurs opérations sur un même véhicule (total automatique)
+- **Affichage différence** : Heures + minutes (`+1h 30min`, `-45min`)
+- **Timers** : Format `HH:MM:SS`
 
 ---
 
-## 📊 Compteurs
+## 📊 Compteurs globaux
 
-- **Inactivité** : Temps de pause (enlève du temps gagné)
-- **Pression** : Temps urgent (juste pour suivi, n'impacte pas le bilan)
+| Compteur | Icône | Impact sur le bilan |
+|---|---|---|
+| **Inactivité** | ⏸️ | ✅ Déduit du bilan (temps de pause) |
+| **Pression/Niveau** | ⚡ | ❌ Suivi uniquement, n'impacte pas le bilan |
 
----
-
-## 💾 Sauvegarde
-
-- Les données restent **indéfiniment** jusqu'à ce que vous appuyiez sur 🗑️
-- **Pas de reset automatique** - Parfait pour les rapports hebdomadaires !
-- Les véhicules et compteurs s'accumulent toute la semaine
-- Le vendredi, générez votre rapport PNG (bouton 📄)
-- Puis videz tout pour recommencer la semaine suivante (bouton 🗑️)
-- ⚠️ Pensez à exporter avant de vider !
-
-**Exemple d'utilisation hebdomadaire :**
-- Lundi → Jeudi : Accumulez les données
-- Vendredi : Exportez le rapport PNG
-- Vendredi soir : Videz pour recommencer lundi
+> ⚠️ Une seule tâche à la fois — timer véhicule, inactivité ou pression.
 
 ---
 
 ## 🎨 Design
 
-Police : **Orbitron** (titres) + **Barlow** (corps)
-Couleur principale : **#ff6b35** (orange industriel)
-Fond : **#0f1419** (noir profond)
+- **Police** : Outfit (corps) + Space Mono (chiffres/titres)
+- **Thème clair** : Fond `#f4f5f7`, accent `#e8590c` (orange industriel)
+- **Thème sombre** : Fond `#111318`, accent `#ff6b35` (orange vif)
+- **Bascule thème** : Toggle dans le header, préférence sauvegardée
+
+---
+
+## 💾 Sauvegarde
+
+- Les données restent indéfiniment jusqu'au bouton 🗑️
+- **Pas de reset automatique** — Parfait pour les rapports hebdomadaires !
+- Les véhicules et compteurs s'accumulent toute la semaine
+
+### Exemple d'utilisation hebdomadaire :
+| Jour | Action |
+|---|---|
+| Lundi → Jeudi | Accumulez les données |
+| Vendredi | Exportez le rapport PNG (bouton 📄) |
+| Vendredi soir | Videz tout pour recommencer lundi (bouton 🗑️) |
+
+> ⚠️ **Pensez à exporter avant de vider !**
 
 ---
 
@@ -113,7 +123,9 @@ Fond : **#0f1419** (noir profond)
 
 Si l'installation ne fonctionne pas :
 - Vérifiez que les 3 fichiers sont au même endroit
-- Utilisez Chrome sur Android ou Safari sur iOS
+- Utilisez **Chrome** sur Android ou **Safari** sur iOS
 - Videz le cache du navigateur et réessayez
+- L'app doit être servie via **HTTPS** pour que le Service Worker fonctionne (Netlify, GitHub Pages, etc.)
 
 Bon travail à l'atelier ! 🚗⚡
+
